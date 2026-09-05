@@ -36,27 +36,60 @@ That single fact means the endowment contract never takes custody of the name. I
 These were confirmed from primary docs during planning. Do not re-derive; do re-verify anything marked ⚠️.
 
 ### ENSv2 ETH Registrar
-Source: https://docs.ens.domains/ensv2/eth-registrar
+Verified 2026-09-05 against source (`ensdomains/namechain`, `contracts/src/registrar/`) and on-chain Sepolia.
 
 ```
-commit(commitment)                                            // min 60s wait
-register(label, owner, secret, subregistry, resolver,
-         duration, paymentToken, referrer)
-renew(label, duration, paymentToken, referrer)                // callable by ANY account
+commit(commitment)                                              // 60 s min, 1 day max
+register(label, owner, secret, subregistry, resolver, duration, paymentToken, referrer)
+renew(label, duration, paymentToken, referrer)                  // callable by ANY account
+getRenewPrice(label, duration, paymentToken) -> uint256          // on the registrar, discount included
+isRenewable(label) -> bool                                       // REGISTERED, or expired and inside grace
+getRemainingGracePeriod(label) -> uint64
+GRACE_PERIOD = 28 days   MIN_REGISTER_DURATION = 28 days   MIN_RENEW_DURATION = 1 s
+event NameRenewed(tokenId indexed, label, duration, newExpiry, paymentToken, referrer indexed, amount)
 ```
 
-- **Payment is ERC-20 via `safeTransferFrom`.** Caller must `approve` the registrar for the total cost first. Payment flows to an immutable beneficiary address.
-- `isPaymentToken(token)` — check which tokens are accepted.
-- `getRegisterPrice(label, duration, paymentToken)` — stateful on the registrar, stateless on the oracle.
-- Price oracle: **`StandardRentPriceOracle`** — length-based pricing, duration discounts, premium decay.
-- **There is a `referrer` parameter on both register and renew.** See §7 for why this matters enormously.
+- **Payment:** `safeTransferFrom(paymentToken, msg.sender, BENEFICIARY, amount)`. The caller approves the registrar, then calls. The caller is the payer, so the vault approves and calls and the money leaves the vault straight to ENS.
+- **There is no renewal window.** `renew()` succeeds any time the name is `REGISTERED` or inside the 28-day grace, for any duration of at least 1 s; the only cap is `uint64` overflow of `expiry + duration`. Timing is a purely economic decision (§6). The true deadline is `expiry + 28 days`.
+- Renewal calls `ETH_REGISTRY.renew(tokenId, newExpiry)`; the registrar holds `ROLE_RENEW` on the registry root. That role is the registrar's own. Permissionless renewal needs no role at all.
+- Reading a name: `ETHRegistry.findExpiry(label)`, `findOwner(label)`, `getResolver(label)`, `getState(tokenId)` returning `{status in {AVAILABLE, RESERVED, REGISTERED}, expiry, latestOwner, tokenId, resource}`. Token ids are mutable across re-registration; index by labelhash.
+- v1 names pre-mirrored into the beta registry (`vitalik.eth`, `nick.eth`, ...) are `RESERVED` with a zero owner and are **not renewable through the v2 registrar** (a separate `ETHRenewerV1` handles them). Spirith v1 covers natively registered v2 names only.
 
 ### ENSv2 pricing
-- 3 chars: **$640/year**
-- 4 chars: **$160/year**
-- 5+ chars: **$8/year**
-- Multi-year discounts: **12.5% @ 2y, ~31% @ 3–5y, ~44% @ 6y**
-- Recently-expired names carry a premium decaying exponentially over 21 days
+Verified on-chain against the live `StandardRentPriceOracle`.
+
+- Base: 3 chars **$640/yr**, 4 chars **$160/yr**, 5+ chars **$8/yr**. 1 and 2 char labels are invalid.
+- **Duration discounts apply to renewals.** `getRenewPrice` -> `getBasePrice` -> `applyDiscount`. Pay 87.5% at 2 y or more, 68.75% at 3 y or more, 56.25% at 6 y or more, i.e. 12.5% / 31.25% / 43.75% off the whole duration. There is no further step above 6 y. Live check on a sibling deployment: `vitalik.eth` 1 y = 8.000021 USDC.
+- Expiry premium: $100, halving daily, zero after 21 days. Charged on `register` only, never on `renew`.
+- Payment tokens on the live oracle: **MockUSDC** `0x768f42455a2d082e23ceef7d51e5787c82d67a39` (6 decimals, permissionless `mint(to, amount)`) and **Circle Sepolia USDC** `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238`. Both 1:1 to the dollar. Aave's Sepolia test USDC is not accepted.
+
+### ENSv2 Sepolia beta deployment (chain 11155111)
+Source: https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta. Verified live 2026-09-05: the fixed Universal Resolver entry point `0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe` resolves `eth` to the ETHRegistry below, and the registrar's oracle and registry match. The `ensdomains/namechain` repo holds two *other* Sepolia sets (`deployments/sepolia` and `deployments/sepolia-official-v1-20260525-r2`); both are live contracts but neither is wired to the entry point. Do not use them.
+
+| Contract | Address |
+|---|---|
+| ETHRegistrar | `0xa88553f454b77203b0d036a05c894d555eaaa2cc` |
+| ETHRegistry (`.eth` PermissionedRegistry) | `0xbdc85dd5b15d7ecb354cd7cb6f2c50b4f2c4f0e2` |
+| RootRegistry | `0x8115186e8f2e0b0281e86ab91f0f48ba90364354` |
+| StandardRentPriceOracle | `0x8914b66260eb8c4fff795650c3ae8cd335958987` |
+| MockUSDC | `0x768f42455a2d082e23ceef7d51e5787c82d67a39` |
+| MockDAI | `0x5472c5725a00b7ba11f0794a79d08ade6f4683bd` |
+| PermissionedResolverImpl | `0x9eae5c2730a7dd16bdd1dee6421a1b91e3b0365e` |
+| VerifiableFactory | `0x10dc6333cdfe1fcef624c6e0a8221b91804cd7ef` |
+| UniversalResolverV2 (behind the proxies) | `0x4a1817d13e9cf196f471725176355c1234b63c70` |
+| PublicResolverV2 | `0xe7b9a25607e02da8145e4eb1836ca539e53f11f7` |
+| Payment beneficiary | `0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3` |
+
+Apps: https://manager.ens.dev (register, manage) and https://explorer.ens.dev. Activity in the week to 2026-09-05: about 500 registrations and 3,400 renewals, almost all in MockUSDC, so the scoreboard will not be empty.
+
+### PermissionedResolver write path
+- Each account gets its own resolver: a UUPS proxy of `PermissionedResolverImpl` deployed through `VerifiableFactory.deployProxy(impl, salt, initData)` with `initialize(admin, roleBitmap, setters)`. The registry points the name at it via `setResolver`.
+- `setText(node, key, value)` requires `ROLE_SET_TEXT` (`1 << 4`) on `resource(node, key)` or `resource(node, 0)`. The owner delegates one key with `authorizeTextRoles(dnsEncodedName, key, account, true)`; `authorizeNameRoles(dnsEncodedName, ROLE_SET_TEXT, account, true)` covers every key.
+- Consequence: Spirith's record write needs a one-time owner action, and renewals must never depend on it (§4.3).
+
+### The `referrer` parameter
+- `bytes32`, emitted unchanged in `NameRegistered` and `NameRenewed`. **Nothing on-chain pays a referrer.**
+- Off-chain, the ENS Referral Program (run by NameHash Labs, funded by the ENS DAO under SPP2, $50k committed) reads those events and pays awards to the encoded address. Encoding: 12 zero bytes then the 20-byte mainnet address. Covers registrations and renewals. **No awards on Sepolia.** Sources: https://github.com/namehash/ens-referrals and https://namehashlabs.org/ens-v2-referral-programs.
 
 ### ENSv2 vs v1
 Source: https://docs.ens.domains/ensv2/overview/
@@ -82,16 +115,9 @@ The grace period cut from 90 → 28 days is a **pitch weapon**. Open with it: *"
 
 ---
 
-## 3. ⚠️ Open questions — resolve these on Day 1
+## 3. Open questions
 
-These change the architecture. Do not build past Day 1 without answers. Ask in the ETHOnline Discord ENS channel and read the deployed contracts.
-
-1. **Is USDC an accepted `paymentToken` on the ENSv2 Sepolia deployment?** Call `isPaymentToken(USDC_SEPOLIA)`. If not, which tokens are? Everything downstream assumes a stablecoin.
-2. **Do multi-year discounts apply to `renew()`, or only `register()`?** The docs say "registrations." If renewals don't get the discount, the cadence optimiser (§6) and the ~$100 headline number both change. This is the single highest-value question on the list.
-3. **Is there a `getRenewPrice(...)`?** Docs only name `getRegisterPrice`. Find the renewal price accessor.
-4. **Does `referrer` earn anything?** Is there a referral revenue share, now or planned? If yes, Spirith has a native business model (§7).
-5. **ENSv2 Sepolia deployment addresses** — registrar, oracle, registry, resolver. Get them from ENS docs/Discord, do not guess.
-6. **Renewal window** — how early before expiry can `renew()` be called? Needed for keeper logic.
+None. The six Day-1 questions (USDC accepted, discounts on renewals, renewal price accessor, referrer economics, deployment addresses, renewal window) were resolved on 2026-09-05 and live as facts in §2. A new question goes here with the work it blocks.
 
 ---
 
@@ -132,6 +158,8 @@ Everything is on **one chain**. Money and name live together. This is a hard con
 - **Multi-patron per name.** Anyone can top up any name. Each patron can withdraw only their own share. This enables "adopt a name" and is what makes it a public good rather than a subscription.
 - **Deposit cap for the hackathon** (e.g. $100 equivalent) + "unaudited testnet software" banner. Correct posture, and it preempts the audit question.
 
+**Custody model (decided 2026-09-05).** ENSv2 has no escrow, prepaid balance, share or "pay from this address" concept: `renew()` pulls the payment token from `msg.sender` via `safeTransferFrom`, and Enhanced Access Control roles govern the name, never money. So the vault holds the yield shares itself: it calls the ERC-4626 vault with `receiver = SpirithVault`, and a patron holds only an internal, per-name claim on those shares (`patronShares`). Converting shares to USDC on renewal day is an ERC-4626 `redeem`, not a swap. This is custody of money, stated openly. What stops it being a honeypot is the two-exits invariant above, not a custody trick: the only token destinations in the code are the registrar and the patron of record, with no admin path to a third, and the Foundry invariant suite must prove exactly that. A patron exits via `requestWithdraw` → `executeWithdraw` at the current share price; the 30-day notice is what keeps the resolver record truthful. Rejected alternatives: §13.
+
 **Sketch:**
 
 ```solidity
@@ -157,13 +185,12 @@ function runwayOf(string calldata label) external view
 ```
 
 **`renew()` flow:**
-1. Read price from the registrar/oracle for `(label, duration, USDC)`.
-2. Require the name is inside its renewal window.
-3. Redeem exactly `price + tip` from the yield adapter into USDC.
-4. `USDC.approve(registrar, price)`.
-5. `registrar.renew(label, duration, USDC, SPIRITH_REFERRER)`.
-6. Transfer `tip` to `msg.sender`. **Tip must be capped** — `min(bps * price, TIP_CAP)` — and paid from that name's own earmark, so keeper incentives cannot be farmed into draining a vault.
-7. Update the resolver record and emit `Renewed`.
+1. `price = registrar.getRenewPrice(label, duration, USDC)`; the discount is already applied.
+2. Require the trigger: `expiry - now <= RENEW_LEAD` (30 days, expiry from `ETHRegistry.findExpiry`), **or** `duration` equals what the on-chain heuristic (§6) returns for this name. ENSv2 has no window of its own; this guard only stops keepers burning yield by renewing years early. It never rejects a name inside grace.
+3. Pull `price + tip` into liquid USDC: from the reserve first, then `adapter.redeem` for any shortfall.
+4. `USDC.approve(registrar, price)`; `registrar.renew(label, duration, USDC, SPIRITH_REFERRER)` with `SPIRITH_REFERRER = bytes32(uint256(uint160(address(this))))`.
+5. Transfer `tip` to `msg.sender`. **Tip must be capped** — `min(bps * price, TIP_CAP)` — and paid from that name's own earmark, so keeper incentives cannot be farmed into draining a vault.
+6. Best-effort record write (§4.3): `try resolver.setText{gas: RECORD_GAS}(node, key, value)` on the resolver returned by `ETHRegistry.getResolver(label)`. A revert (owner never authorised Spirith, or a different resolver type) is swallowed and reported in the `Renewed` event. Emit `Renewed`.
 
 **Reserve buffer:** keep N years of renewals as liquid USDC in the vault; only the excess is deployed to the yield adapter. **A name's survival must never depend on an external system being available on the day it is due.** This principle recurs in every phase of this project.
 
@@ -186,20 +213,26 @@ Ship **three** implementations:
 
 **Prove the real one with a Foundry mainnet-fork test.** A fork test showing a real deposit, real accrual, and a real renewal paid from yield is far more convincing than a testnet mock, and costs an afternoon. Put it in the README.
 
-**Yield venue guidance (decided):** for v1, **same-chain beats fixed-rate**. Use a plain ERC-4626 stablecoin vault on Ethereum. Aave Stable Vaults were evaluated and deferred — their accounting chain is **Arbitrum** with earning on Ethereum mainnet, which reintroduces exactly the cross-chain dependency this project deliberately avoids. Their two-step withdrawal (request → execute) and the fact that **the interest portion gates against system surplus while only principal is unconditionally redeemable** also complicate a perpetuity claim. Revisit when their accounting reaches Ethereum, or when Namechain forces multi-chain anyway. The fixed rate is a genuinely good reason to come back — it is what would let the UI quote a *date* instead of a *range*.
+**Fork target (decided 2026-09-05):** Aave v3 Ethereum USDC stata token, ERC-4626, `0xD4fa2D31b7968E448877f69A96DE69f5de8cD23E` (`USDC_STATA_TOKEN` in the bgd-labs address book), underlying USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`. The renewal leg of that test targets a local mock registrar, since ENSv2 is not on mainnet.
+
+**On Sepolia the adapter is always the mock.** No lending market accepts the ENS payment tokens there, so testnet yield is theatre by construction; the honest UI says so.
+
+**Yield venue guidance (decided):** for v1, **same-chain beats fixed-rate**. Use a plain ERC-4626 stablecoin vault on Ethereum. Aave Stable Vaults were evaluated and deferred — their accounting chain is **Arbitrum** with earning on Ethereum mainnet (verified 2026-09-05 against the Aave architecture doc: "For the Aave App, the Accounting Chain is Arbitrum" and "Earning Chains (Ethereum mainnet initially) host yield strategies"; the Stable Vault contract, the user entrypoint, sits on the Accounting Chain), which reintroduces exactly the cross-chain dependency this project deliberately avoids. Their two-step withdrawal (request → execute) and the fact that **the interest portion gates against system surplus while only principal is unconditionally redeemable** also complicate a perpetuity claim. Revisit when their accounting reaches Ethereum, or when Namechain forces multi-chain anyway. The fixed rate is a genuinely good reason to come back — it is what would let the UI quote a *date* instead of a *range*.
 
 ### 4.3 Resolver record
 
-Write the funding status onto the name itself via the ENSv2 **PermissionedResolver**:
+Write the funding status onto the name itself via the owner's ENSv2 **PermissionedResolver**:
 
 ```
-spirith.funded-until = <ISO year or unix timestamp>
+spirith.funded-until = <unix timestamp, conservative end of the range>
 spirith.patrons      = <count>
 ```
 
-This is what makes it composable: any wallet, marketplace or resolver can see a name is endowed without asking Spirith anything. It is also the cleanest possible justification for the ENS track — ENSv2 features are *central*, not decorative.
+Composable: any wallet, marketplace or resolver sees the name is endowed without asking Spirith. Together with permissionless `renew()` this is the ENS-track centrepiece.
 
-Also explore **EnhancedAccessControl**: define a `RENEWER` role, and use **subregistries** so one endowment can cover an artist's whole subname tree.
+Mechanics (facts in §2): the name owner calls `authorizeTextRoles(dnsName, key, SpirithVault, true)` once per key, offered in the endow flow as an owner-only, optional step ("let Spirith publish this name's funding status"). The vault writes on every `endow`, `renew` and `executeWithdraw`, always best-effort. A name whose owner never authorises Spirith is still renewed; the dashboard shows "record: not authorised".
+
+There is no renewer role to define: `renew()` is open to everyone by design and the registry's `ROLE_RENEW` belongs to the registrar. Subregistries (one endowment covering a subname tree) stay in the cut list as the optional extension.
 
 ### 4.4 Honest UI rule
 
@@ -232,7 +265,9 @@ Not "watch for expiry" — that is a cron job. The agent's real job is **optimis
 
 The naive strategy — renew one year at a time — is the *worst* option. Renewing in 6-year blocks is ~44% cheaper per year. But capital spent on a 6-year renewal stops earning yield. So for each name there is a genuine optimisation over `(balance, yield rate, price tier, discount curve, current expiry)`.
 
-**Agent tools (over Subgraph MCP):**
+**Delivery (decided 2026-09-05):** a Spirith MCP server (`packages/agent`) exposing the tools below, backed by the Spirith subgraph's Subgraph Studio endpoint and API key. The Graph's hosted Subgraph MCP routes only through the gateway to network-published subgraphs, and Sepolia is Studio-only, so it cannot see our data. The Graph's track text accepts Studio API-key consumption. The optimiser is pure, unit-tested TypeScript in the same package.
+
+**Agent tools:**
 - `namesAtRisk(days: int)` — ranked by value and time-to-death
 - `runway(name)` — projected funded-until, with the rate assumption stated
 - `optimalCadence(name)` — recommended renewal duration and why
@@ -243,13 +278,11 @@ Keep an on-chain heuristic in the contract (longest affordable duration above a 
 
 ---
 
-## 7. The `referrer` parameter — possible business model
+## 7. The `referrer` parameter — business model, contingent
 
-`renew(label, duration, paymentToken, referrer)` takes a referrer on every call.
+`renew(label, duration, paymentToken, referrer)` takes a referrer on every call. Spirith passes its own address, left-padded to `bytes32`, on **every renewal it ever executes**.
 
-Spirith passes itself as referrer on **every renewal it ever executes**. If ENS pays referral rewards, the protocol earns a cut of every renewal it keeps alive, forever — funding keeper tips and the public dashboard **without a token, a fee switch, or a rent-seeking layer**.
-
-A self-funding public good is a far better answer to *"how does this sustain itself?"* than anything you would otherwise invent. **Verify whether referrers actually earn a share (§3.4). If they do, it gets a slide.**
+What that buys (facts in §2): nothing on-chain and nothing on Sepolia. On mainnet, the DAO-funded ENS Referral Program pays awards to the referrer address for the registrations and renewals it attributes. Setting the field costs nothing and gives Spirith a claim on a program that already exists, which can fund keeper tips and the dashboard **without a token, a fee switch, or a rent-seeking layer**. Say exactly that in the submission: a self-funding public good, contingent on a DAO program Spirith does not control.
 
 ---
 
@@ -257,11 +290,11 @@ A self-funding public good is a far better answer to *"how does this sustain its
 
 Using confirmed ENSv2 pricing:
 
-| Name length | List price/yr | Effective/yr @ 6y (~44% off) | Perpetual endowment @ ~4% real |
+| Name length | List price/yr | Effective/yr @ 6y (43.75% off) | Perpetual endowment @ ~4% real |
 |---|---|---|---|
-| 5+ chars | $8 | ~$4.50 | **~$110** |
-| 4 chars | $160 | ~$90 | ~$2,250 |
-| 3 chars | $640 | ~$358 | **~$9,000** |
+| 5+ chars | $8 | $4.50 | **~$110** ($112.50) |
+| 4 chars | $160 | $90 | ~$2,250 |
+| 3 chars | $640 | $360 | **~$9,000** |
 
 **Headline: ~$110, once, makes a normal `.eth` name immortal.**
 
@@ -288,8 +321,8 @@ That number is small enough that it stops sounding like a financial product and 
 
 | Sponsor | Track | Prize | Why it's earned |
 |---|---|---|---|
-| **ENS** | Track 1 — Best Use of ENSv2 (Sepolia) | $4.5k (1st $1.5k) | ERC-20 renewal path, PermissionedResolver liveness record, EnhancedAccessControl renewer role, subregistries. Central, not decorative. |
-| **The Graph** | Track 2 — Best AI Tooling (From Scratch) | $5k (1st $2.5k) | Subgraph MCP is load-bearing; the cadence optimiser is real work on live data; net-new. |
+| **ENS** | Track 1 — Best Use of ENSv2 (Sepolia) | $4.5k (1st $1.5k) | ERC-20 renewal path, PermissionedResolver liveness record delegated via `authorizeTextRoles`, Enhanced Access Control as the delegation primitive, subregistries optional. Central, not decorative. |
+| **The Graph** | Track 2 — Best AI Tooling (From Scratch) | $5k (1st $2.5k) | A Spirith MCP server over the Spirith subgraph (Studio) is load-bearing; the cadence optimiser is real work on live data; net-new. |
 
 **THIRD SLOT — leave empty until the unpublished tracks land.** Two deeply integrated sponsors beat three with one bolted on. Candidates in order:
 
@@ -299,18 +332,9 @@ That number is small enough that it stops sounding like a financial product and 
 
 **Do not add a sponsor unless it passes this test: would you use it if there were no prize?**
 
-### 9.3 8-day plan
+### 9.3 Plan
 
-| Day | Date | Goal |
-|---|---|---|
-| 1 | Sep 5–6 | Resolve all §3 open questions. Scaffold Foundry + Next.js. Get ENSv2 Sepolia addresses. Register a test name, call `renew()` manually from a script to prove the path. |
-| 2 | Sep 7 | `SpirithVault.sol` core: endow / withdraw+notice / per-name earmarks / patron shares. Full unit tests. |
-| 3 | Sep 8 | `renew()` path end-to-end on Sepolia with `MockYieldAdapter`. Keeper tip. Resolver record write. |
-| 4 | Sep 9 | `ERC4626Adapter` + **Foundry mainnet-fork test** against real Aave. Cadence heuristic on-chain. |
-| 5 | Sep 10 | Subgraph deployed and indexing. Entities + derived views. |
-| 6 | Sep 11 | Agent (Subgraph MCP tools) + dashboard: namespace scoreboard, name card, endow flow. |
-| 7 | Sep 12 | Polish. README (custody posture first). `FEEDBACK.md` if Uniswap. Rehearse demo 3×. |
-| 8 | Sep 13 AM | **Record video. Submit by 10:00 EDT** — two hours of margin, not zero. |
+Phases, gates, project structure and commands live in `SPIRITH_PLAN.md`. Submit by Sun 2026-09-13 10:00 EDT, two hours before the hard cut-off.
 
 ### 9.4 Cut list (in this order, without guilt)
 1. Uniswap Endowment Hook
@@ -463,7 +487,9 @@ Then one TXT record and the existing immutable `tokenURI` resolves from IPFS wit
 | **Arc (Circle L1)** | Forces a cross-chain bridge into a design with no reason to leave Ethereum. Reads as a prize grab, and the bridge is the most likely thing to break on demo day. Arc mainnet also wasn't live, ruling out their Track 3. |
 | **1inch Aqua for the swap** | ENSv2's ERC-20 payment eliminated the swap entirely. Even before that, a vault swapping $8 once a year is a thin "Aqua app" — the Arc mistake at smaller scale. |
 | **Hedera / World** | No honest role in Phase 1. Both are strong for Phase 2/3 (x402 renewal service, HCS attestations, proof-of-human patronage) — revisit then. |
-| **Aave Stable Vaults for v1** | Accounting chain is Arbitrum; same cross-chain objection as Arc. Two-step withdrawal; interest gated against system surplus. Deferred, not dismissed — the fixed rate is the one thing that would let the UI quote a date instead of a range. |
+| **Aave Stable Vaults for v1** | Accounting chain is Arbitrum (per Aave architecture doc, verified 2026-09-05; Ethereum is only an Earning Chain); same cross-chain objection as Arc. Two-step withdrawal; interest gated against system surplus. Deferred, not dismissed — the fixed rate is the one thing that would let the UI quote a date instead of a range. |
+| **Pull-model custody (patron keeps the yield shares, grants the vault an allowance)** | Breaks three load-bearing rules: no reserve buffer is possible, so a name dies if the yield venue is paused on renewal day; exit is instant, so "funded until 2149" describes a revocable allowance and the resolver record and liveness score become untrustworthy; and the blast radius is not smaller — a vault bug drains every approved wallet, the classic approval exploit. |
+| **One escrow clone per name (ERC-1167) instead of a singleton vault** | Storage isolation is real but a bug in the shared implementation still hits every clone; resolver write permissions multiply; costs days the hackathon lacks. Post-hackathon hardening path, not v1. |
 | **A Spirith token / DAO treasury** | "Token price tracks remaining runway" is a reflexive death spiral, and a single global treasury makes the blast radius the whole archive. Per-name earmarks instead. |
 | **Any cross-chain hop on the renewal critical path** | A name's survival must never depend on a bridge being up on a particular Tuesday. |
 | **Pixel archiving for generative art** | Archive the machine that makes the pixels, not the pixels. Cheaper, resolution-independent, preserves the generative nature. |
@@ -481,13 +507,27 @@ Then one TXT record and the existing immutable `tokenURI` resolves from IPFS wit
 - Gasless DNSSEC import — https://support.ens.domains/en/articles/8834820-how-do-i-import-my-dns-domain-into-ens-without-paying-gas
 - v1 pricing — https://support.ens.domains/en/articles/12238910
 - ens-cli (agent-native) — https://github.com/ensdomains/ens-cli
+- Sepolia beta deployments — https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta
+- ENSv2 contracts source — https://github.com/ensdomains/namechain (`contracts/`); mirror https://github.com/ensdomains/contracts-v2
+- Contract developer tutorial — https://docs.ens.domains/ensv2/tutorial-contract-developers
+- PermissionedResolver — https://docs.ens.domains/ensv2/permissioned-resolver
+- Enhanced Access Control — https://docs.ens.domains/ensv2/enhanced-access-control
+- Beta apps — https://manager.ens.dev , https://explorer.ens.dev
+- ENS Referral Program — https://github.com/namehash/ens-referrals
 
 **Prior art**
 - self-repaying-ens — https://github.com/The-Wary-One/self-repaying-ens
 - rescue-name — https://github.com/v3xlabs/rescue-name
 
+**The Graph**
+- Subgraph MCP — https://thegraph.com/docs/en/subgraphs/tooling/subgraph-mcp/introduction/
+- Supported networks (Sepolia is Studio-only) — https://thegraph.com/docs/en/supported-networks/
+- Prize tracks — https://ethglobal.com/events/ethonline2026/prizes/the-graph
+
 **Yield**
 - Aave Stable Vaults — https://aave.com/docs/vaults/stable-vaults (+ `/architecture`, `/yield-strategies`)
+- Aave Simple Earn (ERC-4626) — https://aave.com/docs/vaults/simple-earn/overview
+- Aave address book (`USDC_STATA_TOKEN`) — https://github.com/bgd-labs/aave-address-book
 
 **Storage / Phase 3**
 - Filecoin Onchain Cloud — https://filecoin.io/blog/posts/introducing-filecoin-onchain-cloud

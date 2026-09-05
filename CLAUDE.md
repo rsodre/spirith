@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Task | Read first |
 | --- | --- |
 | Anything: scope, architecture, deadline, decisions | `specs/SPIRITH_HANDOVER.md` |
+| Which phase we are in, gates, project structure, commands | `specs/SPIRITH_PLAN.md` |
 | Writing or editing CLAUDE.md, specs, README | `spec-discipline` skill |
 | Committing, asking the user, handling `_inbox/`, dev ports | `agent-workflow` skill |
 | Writing or reviewing Solidity or TypeScript design | `software-design-principles`, `software-design-review` skills |
@@ -38,13 +39,16 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-The repo is pre-implementation. It holds only `specs/SPIRITH_HANDOVER.md`, which is the
-source of truth for scope, architecture, decisions and deadline. Read it in full before
-building anything. When this file and the spec disagree, the spec wins; update this file.
+Pre-implementation, all Day-1 questions resolved (2026-09-05). `specs/SPIRITH_HANDOVER.md` is
+the source of truth for scope, architecture, decisions and deadline; `specs/SPIRITH_PLAN.md`
+holds the phases, gates and project structure. Read both in full before building anything.
+When this file and a spec disagree, the spec wins; update this file.
 
-There are no build, test or lint commands yet. When the stack is scaffolded, add the real
-commands here (Foundry: `forge build` / `forge test --match-test <name>` / fork tests need an
-RPC URL in `.env`; Next.js app; subgraph `graph codegen` / `graph deploy`).
+Planned layout: pnpm workspace with `contracts/` (Foundry), `packages/core` (chain config,
+address+ABI registry, pricing and runway math), `packages/subgraph`, `packages/agent` (MCP
+server, optimiser, keeper CLI) and `apps/web` (Next.js). Node 23 and pnpm 10 are installed;
+Foundry is not yet. There are no build, test or lint commands until Phase 0 lands; the plan's
+§3 table lists the ones to add here as they become real.
 
 ## What Spirith is
 
@@ -65,16 +69,20 @@ name, only money.
   `spirith.funded-until` / `spirith.patrons` to the PermissionedResolver.
 - `IYieldAdapter` with `MockYieldAdapter` (the live demo runs on this), `ERC4626Adapter`
   (generic, proven by a Foundry mainnet-fork test), optionally `AaveStableVaultAdapter`.
-- Subgraph (The Graph) indexing ENSv2 Sepolia plus Spirith events: Name, Endowment, Patron,
-  RenewalEvent, LivenessScore.
-- Agent over Subgraph MCP whose real job is optimising renewal cadence against the ENSv2
-  duration-discount curve (not just "watch for expiry"). Tools: namesAtRisk, runway,
-  optimalCadence, portfolioHealth, rescueProposal.
+- Subgraph (The Graph, Subgraph Studio on Sepolia) indexing the ENSv2 registrar and registry
+  plus Spirith events: Name, Endowment, Patron, RenewalEvent; liveness is banded at read time.
+- A Spirith MCP server (`packages/agent`) over that subgraph, whose real job is optimising
+  renewal cadence against the ENSv2 duration-discount curve (not just "watch for expiry").
+  Tools: namesAtRisk, runway, optimalCadence, portfolioHealth, rescueProposal. The Graph's
+  hosted Subgraph MCP cannot reach Sepolia, so it is not the delivery vehicle.
 - Next.js dashboard: namespace scoreboard, name card, endow flow, graveyard view.
 
 ## Load-bearing design rules (do not "improve" these away)
 
 - Per-name earmarks, no shared pool. One name's deposit can never pay for another.
+- The vault holds the yield shares itself; a patron holds only an internal per-name claim.
+  ENSv2 offers no escrow or share concept. The two-exits rule, not a custody trick, is what
+  keeps this from being a honeypot (spec §4.1 custody model).
 - Exactly two exits for funds: to the ENS registrar as a renewal payment, or back to a patron.
   The renewal path calls the registrar directly, never an intermediary.
 - No admin key can move funds. Pause blocks new deposits only; it never blocks a withdrawal
@@ -90,12 +98,14 @@ name, only money.
 - Honest UI: with a variable yield rate, quote a funded-until *range*, never a single date.
 - Hackathon posture: deposit cap (~$100) plus an "unaudited testnet software" banner.
 
-## Open questions to resolve before building past Day 1 (spec §3)
+## Verified ENSv2 facts that shape the code (spec §2 has the sources)
 
-Check `isPaymentToken(USDC)` on the ENSv2 Sepolia deployment; whether multi-year discounts
-apply to `renew()` (changes the cadence optimiser and the ~$110 headline); the renewal price
-accessor; whether `referrer` earns anything; the Sepolia deployment addresses (get them from
-ENS docs or Discord, never guess); and how early before expiry `renew()` may be called.
+Renewals get the multi-year discounts (12.5% / 31.25% / 43.75% at 2 / 3 / 6 years). There is
+no renewal window: `renew()` works any time a name is registered or inside its 28-day grace.
+Price comes from `registrar.getRenewPrice`. The referrer earns nothing on-chain; an off-chain
+DAO program pays mainnet referrers. The live Sepolia beta addresses are in spec §2 and are
+verified against the Universal Resolver entry point; the namechain repo holds two other
+Sepolia sets that are not live. Resolver records need the owner's `authorizeTextRoles` once.
 
 ## Scope discipline
 
@@ -106,7 +116,8 @@ earmark, resolver record, dashboard, demo video.
 Locked sponsors: ENS (Best Use of ENSv2) and The Graph (Best AI Tooling). Leave the third
 slot empty unless a sponsor would be used with no prize attached. Rejected and not to be
 re-proposed (spec §13): Arc, 1inch Aqua, Hedera/World for Phase 1, Aave Stable Vaults for
-v1, a Spirith token or DAO treasury, pixel archiving for generative art.
+v1, a Spirith token or DAO treasury, pixel archiving for generative art, pull-model custody
+(patron keeps shares and grants an allowance), one escrow clone per name.
 
 Phases 2 (DNS domains) and 3 (file permanence) in the spec are post-hackathon context only.
 Do not build toward them now.
