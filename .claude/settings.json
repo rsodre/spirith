@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "core@rsodre-skills": true,
+    "web@rsodre-skills": true,
+    "web3@rsodre-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "rsodre-skills": {
+      "source": {
+        "source": "github",
+        "repo": "rsodre/agent-skills"
+      }
+    }
+  }
+}
