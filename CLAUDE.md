@@ -29,6 +29,13 @@ Consequences that matter here:
   registry, wagmi + viem on the EVM side.
 - Update with `/plugin marketplace update rsodre-skills`.
 
+## README rule
+
+`README.md` is for humans, the way this file and `AGENTS.md` are for agents. Keep it brief and
+light on technical detail: what Spirith is, the phases, and how to set up and run it. Update the
+README as pieces land (a new app, a new command, a deploy step) in the same change that adds
+them. No architecture rationale, no agent instructions, no spec content.
+
 ## Current state
 
 The repo is pre-implementation. It holds only `specs/SPIRITH_HANDOVER.md`, which is the
