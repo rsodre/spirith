@@ -44,11 +44,26 @@ the source of truth for scope, architecture, decisions and deadline; `specs/SPIR
 holds the phases, gates and project structure. Read both in full before building anything.
 When this file and a spec disagree, the spec wins; update this file.
 
-Planned layout: pnpm workspace with `contracts/` (Foundry), `packages/core` (chain config,
-address+ABI registry, pricing and runway math), `packages/subgraph`, `packages/agent` (MCP
-server, optimiser, keeper CLI) and `apps/web` (Next.js). Node 23 and pnpm 10 are installed;
-Foundry is not yet. There are no build, test or lint commands until Phase 0 lands; the plan's
-§3 table lists the ones to add here as they become real.
+Layout: pnpm workspace with `contracts/` (Foundry) and `packages/core` (chain config,
+address+ABI registry, pricing and runway math) in place; `packages/subgraph`, `packages/agent`
+(MCP server, optimiser, keeper CLI) and `apps/web` (Next.js) arrive in later phases. Node 23,
+pnpm 10 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, which must be on
+`PATH` or every contracts script fails with "command not found".
+
+## Commands
+
+| Command | Does |
+|---|---|
+| `pnpm check` | the gate: Biome + `forge fmt --check`, `tsc --noEmit`, vitest, `forge test` |
+| `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
+| `pnpm --filter @spirith/core test` | pricing and runway pins only |
+| `pnpm --filter @spirith/core gen:abis` | regenerate `src/generated/` from `artifacts/` |
+| `forge test --match-test <name>` (in `contracts/`) | one Solidity test |
+| `forge script script/ProveRenew.s.sol ...` | renew a name from a non-owner (see README) |
+
+Vendored ENSv2 interfaces live in `contracts/src/interfaces/ens/`; `test/Interfaces.t.sol`
+pins their selectors. Sepolia addresses live in exactly two mirrored places,
+`contracts/script/Config.s.sol` and `packages/core/src/ens/addresses.ts`; change both or neither.
 
 ## What Spirith is
 

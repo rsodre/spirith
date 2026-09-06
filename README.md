@@ -15,7 +15,7 @@ namespace is.
 We custody money. We never custody the name. The worst outcome for a user is losing their
 deposit. It is structurally impossible for them to lose their identity.
 
-For a normal five-letter name, roughly $110 deposited once is enough to keep it alive
+For a normal five-letter name, roughly $110 to $130 deposited once is enough to keep it alive
 indefinitely at current rates. That is a forecast, not a guarantee, and the app says so.
 
 ## Phases
@@ -27,14 +27,49 @@ indefinitely at current rates. That is a forecast, not a guarantee, and the app 
 3. **Files** (later). Extend the runway to the bytes behind the name, so an artwork, its
    metadata and its address are funded together.
 
-## Status
+## AI usage
 
-Pre-implementation. There is nothing to run yet. Setup and run instructions will appear here
-as the pieces land.
+Claude (Anthropic) was used throughout. It took part in the project brainstorm from the original
+idea, a sustainable IPFS node, through the branch into DNS domains and then ENS names, and
+produced the handover document in `specs/`. It assisted with the project structure, the scripts,
+and the tests. Design decisions, scope and what ships are the author's.
+
+## Setup
+
+Requirements: Node 23, pnpm 10, [Foundry](https://getfoundry.sh) via `foundryup`. On macOS the
+prebuilt Foundry binaries need `brew install libusb`, and `~/.foundry/bin` must be on your `PATH`.
+
+```sh
+git clone <repo> spirith && cd spirith
+pnpm install                # also installs the Solidity libraries (OpenZeppelin, forge-std)
+cp .env.example .env        # fill in SEPOLIA_RPC_URL and, for scripts, DEPLOYER_PRIVATE_KEY
+```
+
+## Run
+
+```sh
+pnpm check                  # lint, typecheck, unit tests (TypeScript and Solidity)
+pnpm test:fork:sepolia      # smoke-test the ENSv2 interfaces against live Sepolia
+```
+
+Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is
+minted by the script):
+
+```sh
+cd contracts
+LABEL=<some-registered-name> forge script script/ProveRenew.s.sol \
+  --rpc-url $SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --broadcast
+```
+
+To register a test name of your own: run `script/RegisterName.s.sol` with `STEP=commit`, wait a
+minute, then again with `STEP=register`.
 
 ## Repository
 
-- `specs/` — the project handover and specifications
+- `contracts/` — Foundry: Solidity sources, tests, deploy and proof scripts
+- `packages/core` — shared TypeScript: chain config, ENSv2 addresses and ABIs, pricing and
+  runway math
+- `specs/` — the project handover and the build plan
 - `CLAUDE.md`, `AGENTS.md` — guidance for coding agents
 
 ## Warning

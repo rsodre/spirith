@@ -5,7 +5,7 @@ Phases, gates and project structure for the ETHOnline 2026 build. Facts and desi
 finished phase `✅` on its heading, `☑️` when it landed with something outstanding (named in a
 sub-heading). Commands move into `CLAUDE.md` the day they exist.
 
-Dates: today is Sat 2026-09-05. Hard deadline Sun 2026-09-13 12:00 EDT; submit by 10:00 EDT.
+Hard deadline Sun 2026-09-13 12:00 EDT. Phases have no dates; only the submission has one.
 
 ---
 
@@ -16,6 +16,7 @@ Each is reversible today and expensive later. Veto now or they stand.
 | Decision | Choice | Reason |
 |---|---|---|
 | Workspace | pnpm workspace, `apps/*` + `packages/*`, Foundry project at `contracts/` as a workspace member with a `package.json` of proxy scripts | One `pnpm check` gates Solidity and TypeScript alike; `contracts/` at root keeps `forge` paths short |
+| Solidity deps | `@openzeppelin/contracts` from npm, `forge-std` from `github:foundry-rs/forge-std#<tag>`, both as `contracts/package.json` devDependencies with remappings into `node_modules` | One package manager for the whole repo; no submodules to forget on clone |
 | ENSv2 interfaces | Vendor the four interfaces Spirith calls (`IETHRenewer`, `IPermissionedRegistry` read subset, `IRentPriceOracle` discount read, `ITextResolver`) into `contracts/src/interfaces/ens/`, verbatim with licence and source URL | `forge install ensdomains/contracts-v2` drags eight submodules and a Yul build; we need four files and stable compile times |
 | Vault asset on Sepolia | ENS `MockUSDC` (constructor parameter, mainnet passes real USDC) | Permissionless `mint` gives the demo a "get test USDC" button; Circle's faucet is rate-limited |
 | Yield on Sepolia | `MockYieldAdapter` only; `ERC4626Adapter` proven by mainnet-fork test | → HANDOVER §4.2: no Sepolia market accepts the ENS payment tokens |
@@ -88,7 +89,7 @@ NEXT_PUBLIC_CHAIN=sepolia  NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=
 Each phase ends with a gate. A gate is observed, not believed: a passing command, a transaction
 hash, or a URL. Cut-list order when time runs short → HANDOVER §9.4.
 
-### Phase 0 — Toolchain, scaffold, proof of path (Sat 5 – Sun 6 Sep)
+### Phase 0 ✅ — Toolchain, scaffold, proof of path
 
 1. Install Foundry (`curl -L https://foundry.paradigm.xyz | bash && foundryup`). Node 23 and pnpm 10 are present.
 2. Root: `pnpm-workspace.yaml` with catalog (viem, wagmi, @tanstack/react-query, next, react, tailwindcss, biome, vitest, typescript), `biome.jsonc` from the `coding-style` reference, `tsconfig.base.json`, `.nvmrc`, `.env.example`, root scripts `build`, `check`, `dev:claude`, `test`.
@@ -100,9 +101,26 @@ hash, or a URL. Cut-list order when time runs short → HANDOVER §9.4.
 
 **Gate:** `pnpm check` green; renewal tx hash from a non-owner recorded below; `forge test` runs.
 
-Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
+Landed 2026-09-05: steps 1–3, 6 and 7. `pnpm check` is green (Biome, `forge fmt`, `tsc`, 16 vitest
+pins, 8 Foundry tests of which 5 run against live Sepolia through the vendored interfaces).
+Toolchain notes: Foundry is installed with `foundryup` (1.8.1); Homebrew's `foundry` formula has
+no bottle for macOS 13 and compiles cmake and Foundry from source, so it is not used. The prebuilt
+binary links Homebrew's `libusb` (`brew install libusb`). `~/.foundry/bin` must be on `PATH`.
+Solidity dependencies come through pnpm: `@openzeppelin/contracts` from npm and `forge-std` from
+its GitHub tag (foundry-rs publishes no npm package); no git submodules.
 
-### Phase 1 — Vault core (Mon 7 Sep)
+Proof of path, 2026-09-06 on Sepolia. Test names registered by the deployer key
+`0x62d48EA396a8BD7A5627BbAB5969DD45DB2b42c4` for the minimum 28 days (613,701 MockUSDC each):
+`spirithalpha.eth` and `spirithbeta.eth`, both on `PublicResolverV2`, expiry 2026-10-04.
+Then the keeper key `0xF137c0A0423D16d80FF3b106b979D3d90118E5B7`, which owns neither, renewed
+`spirithalpha.eth` for one year at 8.000021 MockUSDC:
+tx `0x2828d07e01396b681c8a9cb978a9eeb96c234fdff89a1e2e942fca3ac5a62afb`, expiry now 2027-10-04.
+Both keys live in the git-ignored `.env` (`DEPLOYER_PRIVATE_KEY`, `KEEPER_PRIVATE_KEY`).
+`spirithbeta.eth` stays at its 28-day expiry, inside the 30-day renew lead from day one, which
+is the Phase 2 demo path; a PermissionedResolver name for the record write is registered in
+Phase 2 through manager.ens.dev.
+
+### Phase 1 — Vault core
 
 `SpirithVault.sol` per HANDOVER §4.1, with the custody model and two-exits invariant as written.
 
@@ -115,7 +133,7 @@ Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
 
 **Gate:** `forge test` green including invariants with 4096 runs; no function can move tokens to a third address (grep the ABI, then the test).
 
-### Phase 2 — Renewal path, live on Sepolia (Tue 8 Sep)
+### Phase 2 — Renewal path, live on Sepolia
 
 - `renew(label, duration)` per HANDOVER §4.1 steps 1–6, tip `min(1% × price, 1 USDC)`, `RENEW_LEAD` 30 days, best-effort `setText` with a gas stipend.
 - `Cadence.sol`: `optimalDuration(label)` returns the longest of {6y, 3y, 2y, 1y} whose price leaves the reserve floor intact, else the longest affordable, else revert `Unfunded`.
@@ -127,7 +145,7 @@ Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
 
 **Gate:** Sepolia tx hashes for `endow`, `renew` (by a non-owner), and a visible `spirith.funded-until` record; `forge test` green with the fork test.
 
-### Phase 3 — Real yield proof (Wed 9 Sep)
+### Phase 3 — Real yield proof
 
 - `ERC4626Adapter.sol`: `deposit` / `redeem` / `convertToAssets` / `rateRange()` over any ERC-4626; `rateRange` reads a configured `[lowBps, highBps]` because ERC-4626 exposes no rate.
 - `ERC4626Adapter.fork.t.sol` on a mainnet fork: deal USDC, endow, `vm.warp` a year, assert `convertToAssets` grew, renew against `MockRegistrar`. Print the accrued yield in the test log for the README.
@@ -135,7 +153,7 @@ Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
 
 **Gate:** `forge test --fork-url $MAINNET_RPC_URL --match-contract ERC4626AdapterFork` green; the yield number is in the README.
 
-### Phase 4 — Subgraph (Thu 10 Sep)
+### Phase 4 — Subgraph
 
 - Schema per HANDOVER §5: `Name`, `Endowment`, `Patron`, `RenewalEvent`, plus `Namespace` singleton with running totals (names, endowed, expiring-28d, graveyard count).
 - Data sources from the ETHRegistrar's first block (find via explorer.ens.dev or a binary search on `getCode`): `ETHRegistrar.NameRegistered/NameRenewed`, `ETHRegistry.LabelRegistered/ExpiryUpdated/TransferSingle/ResolverUpdated/LabelUnregistered`, `SpirithVault.*`. Key `Name` by labelhash; tier from label length.
@@ -144,7 +162,7 @@ Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
 
 **Gate:** Studio endpoint answers `names(where: {expiry_lt: now + 28d}, orderBy: expiry)` and `endowments` with the Phase 2 data; URL and API key in `.env`.
 
-### Phase 5 — Agent: MCP server + optimiser (Fri 11 Sep, morning)
+### Phase 5 — Agent: MCP server + optimiser
 
 - `packages/agent/src/optimiser/`: pure functions. `optimalCadence({assets, rateLowBps, rateHighBps, tier, expiry, discountPoints, reserveYears})` simulates renew-1y-forever versus 2/3/6-year blocks over a horizon and returns the strategy with the longest runway at the low rate, with a one-paragraph explanation string. Vitest with the on-chain discount points.
 - MCP server (`@modelcontextprotocol/sdk`, stdio): `namesAtRisk(days)`, `runway(name)`, `optimalCadence(name)`, `portfolioHealth(address)`, `rescueProposal(name)`. Each tool queries the subgraph through `core`, runs the optimiser, and returns structured JSON plus a sentence a human can read.
@@ -153,7 +171,7 @@ Proof-of-path record: `label=` · `expiry=` · `renew tx=` (fill in).
 
 **Gate:** From a fresh Claude Code session with the server configured, "which endowed names die in the next 30 days and what should each renew for?" returns live Sepolia data with cadences; `pnpm --filter @spirith/agent test` green.
 
-### Phase 6 — Dashboard (Fri 11 Sep, afternoon – Sat 12 Sep)
+### Phase 6 — Dashboard
 
 Pages, each a folder under `components/pages/`:
 
@@ -166,12 +184,12 @@ Pages, each a folder under `components/pages/`:
 
 **Gate:** The 90-second demo script (→ HANDOVER §9.5) runs end to end on Sepolia from a clean browser profile against `pnpm dev`, twice.
 
-### Phase 7 — Submission (Sat 12 evening – Sun 13 Sep, 10:00 EDT)
+### Phase 7 — Submission, not later than Sun 2026-09-13 10:00 EDT
 
 - README per `CLAUDE.md` README rule and HANDOVER §15: custody posture first, problem statement verbatim, the 28-day grace cut, prior art, limitations, setup and run, the fork-test yield number, the renewal tx from a non-owner.
 - Video 2–4 min, 720p+, real narration: scoreboard → endow → record appears → non-owner renews → graveyard → agent answering one question.
 - ETHGlobal dashboard: title, description, repo, video, two sponsor tracks (ENS Track 1, The Graph Track 2). Third slot stays empty unless HANDOVER §9.2's test is passed.
-- Rehearse three times Saturday evening; record Sunday morning; submit by 10:00 EDT.
+- Rehearse three times, record, submit by 10:00 EDT: two hours of margin before the hard cut-off.
 
 **Gate:** submission confirmation email.
 

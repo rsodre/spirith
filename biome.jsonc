@@ -1,0 +1,75 @@
+{
+  // Workspace Biome config: formatter and linter for every app and package. Nested packages
+  // get at most an `{ "extends": "//" }` stub. Every rule downgrade carries a comment saying why.
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/.next/**",
+      // Framework-owned files: Next.js rewrites these on build.
+      "!**/tsconfig.json",
+      "!**/next-env.d.ts",
+      // Generated / vendored data: not hand-edited, so not ours to format.
+      "!**/src/generated/**",
+      "!**/artifacts/**",
+      "!contracts/out/**",
+      "!contracts/cache/**",
+      "!contracts/broadcast/**",
+      "!contracts/lib/**",
+      "!**/*.html",
+      "!**/*.md",
+      "!**/*.svg"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        // Import auto-sorting fights the manual grouping (react -> external -> local).
+        "organizeImports": "off"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        // The `!= null` idiom (catches null AND undefined) is deliberate; every other loose
+        // comparison is a bug.
+        "noDoubleEquals": {
+          "level": "error",
+          "options": { "ignoreNull": true }
+        },
+        // MUST stay off: its autofix rewrites directory content-excludes (`!**/dist/**`) to the
+        // bare form, which stops excluding the directory's contents.
+        "useBiomeIgnoreFolder": "off"
+      }
+    }
+  }
+}

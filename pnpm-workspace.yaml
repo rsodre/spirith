@@ -1,0 +1,18 @@
+packages:
+  - apps/*
+  - packages/*
+  - contracts
+
+# Shared external versions live here. Manifests reference them as "catalog:".
+# Bump the catalog, never a package manifest.
+catalog:
+  '@biomejs/biome': 2.5.12
+  '@types/node': 26.4.1
+  tsdown: 0.23.0
+  typescript: 5.9.3
+  viem: 2.56.3
+  vitest: 5.0.0
+
+# Every dependency with an install script gets an explicit answer.
+onlyBuiltDependencies:
+  - esbuild # vitest -> vite -> esbuild downloads its platform binary in postinstall

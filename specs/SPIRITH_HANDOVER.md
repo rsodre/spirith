@@ -290,13 +290,19 @@ What that buys (facts in §2): nothing on-chain and nothing on Sepolia. On mainn
 
 Using confirmed ENSv2 pricing:
 
-| Name length | List price/yr | Effective/yr @ 6y (43.75% off) | Perpetual endowment @ ~4% real |
-|---|---|---|---|
-| 5+ chars | $8 | $4.50 | **~$110** ($112.50) |
-| 4 chars | $160 | $90 | ~$2,250 |
-| 3 chars | $640 | $360 | **~$9,000** |
+| Name length | List price/yr | Effective/yr @ 6y (43.75% off) | Perpetual, 6y blocks @ 5% | Perpetual, 6y blocks @ 4% |
+|---|---|---|---|---|
+| 5+ chars | $8 | $4.50 | **~$107** | **~$129** |
+| 4 chars | $160 | $90 | ~$2,130 | ~$2,580 |
+| 3 chars | $640 | $360 | ~$8,500 | ~$10,300 |
 
-**Headline: ~$110, once, makes a normal `.eth` name immortal.**
+The "perpetual" columns account for the yield forgone on capital spent six years ahead: the
+endowment must return to its starting balance by the next renewal, `(A - cost6y) × (1 + r)^6 ≥ A`.
+The naive `$4.50 / 4% = $112.50` ignores that and is not enough. Renewing yearly needs ~$208 at
+4%, which is why cadence (§6) is worth optimising. Thresholds are pinned in
+`packages/core/test/runway.test.ts`; the on-chain prices they use are pinned in `pricing.test.ts`.
+
+**Headline: ~$110–130, once, makes a normal `.eth` name immortal at 4–5% yield.**
 
 That number is small enough that it stops sounding like a financial product and starts sounding like a rounding error — which is the emotional point of the entire pitch.
 
@@ -550,4 +556,4 @@ The strength of this project is that it is **honest about a boring problem**. Do
 - Say plainly: *we custody money, we never custody the name.*
 - Put the limitations on a slide, not in a footnote: yield is a forecast; there is a caretaker role in Phase 2; testnet yield is theatre.
 - Cite the 2022 prior art before a judge finds it.
-- The number that lands is **~$110**. Not the architecture.
+- The number that lands is **~$110–130**. Not the architecture.
