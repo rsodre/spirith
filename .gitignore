@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Agent drop folder (rsodre-skills agent-workflow)
 _inbox/
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/dry-run/

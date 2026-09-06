@@ -1,0 +1,17 @@
+{
+  "name": "@spirith/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spirith Solidity contracts (Foundry). Scripts proxy to forge so the workspace gate covers them.",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "test:fork:sepolia": "forge test --fork-url $SEPOLIA_RPC_URL --match-contract Fork",
+    "lint": "forge fmt --check",
+    "format": "forge fmt"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.6.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.16.2"
+  }
+}
