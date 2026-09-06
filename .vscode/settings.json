@@ -1,0 +1,55 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    // "**/build": true,
+    // "**/target": true,
+    // "**/dist": true,
+    "**/.next": true,
+    "**/.next-claude": true,
+    "**/next-env.d.ts": true,
+    "**/.tsbuild": true,
+    "**/.turbo": true,
+    "**/.vercel": true,
+    "**/*.tsbuildinfo": true
+  },
+  "search.exclude": {
+    "**/*-lock.json": true,
+    "**/*-lock.yaml": true,
+    "**/*.lock": true,
+    "**/*.graphql": true,
+    "**/artifacts/**/*.json": true,
+    "**/contracts/**/*.json": true,
+    "**/yarn*.json": true,
+    "**/.gitignore": true,
+    "**/.gitmodules": true,
+    "**/database.json": true,
+    "**/manifest.json": true,
+    "**/manifest_*.json": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/target": true,
+    "/assets": true,
+    "/libs": true,
+    ".agents": true,
+    ".claude": true,
+    "**/*.obj": true,
+    "**/*.svg": true
+  },
+  "typescript.validate.enable": true,
+  "editor.detectIndentation": false,
+  "editor.formatOnPaste": true,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "[css][scss]": {
+    "editor.formatOnPaste": false
+  },
+  // Solidity: 4 spaces, matching `forge fmt` (contracts/foundry.toml [fmt] tab_width = 4).
+  "[solidity]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false
+  },
+  "window.openFoldersInNewWindow": "on",
+  "workbench.editor.pinnedTabsOnSeparateRow": true,
+  "workbench.editor.tabSizing": "shrink"
+}
