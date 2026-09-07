@@ -30,6 +30,12 @@ Consequences that matter here:
   registry, wagmi + viem on the EVM side.
 - Update with `/plugin marketplace update rsodre-skills`.
 
+## Immutable file
+
+`specs/SPIRITH_IDEATION.md` is the verbatim transcript of the ideation conversation, kept for
+transparency. Never edit it, reformat it, or "correct" it, even where it contradicts the current
+spec; it records what was said, not what is true. It is not a source of truth for anything.
+
 ## README rule
 
 `README.md` is for humans, the way this file and `AGENTS.md` are for agents. Keep it brief and

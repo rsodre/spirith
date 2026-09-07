@@ -41,6 +41,10 @@ produced the handover document in `specs/`, constantly updated as the project ev
 assisted with the project structure, the scripts, and testing coordination. Design decisions,
 scope and what ships are the author's.
 
+The ideation conversation that produced the handover is included verbatim as
+[`specs/SPIRITH_IDEATION.md`](specs/SPIRITH_IDEATION.md), for transparency. It is a transcript,
+not a spec: where it and the handover disagree, the handover is current.
+
 ## Setup
 
 Requirements: Node 23, pnpm 10, [Foundry](https://getfoundry.sh) via `foundryup`. On macOS the
