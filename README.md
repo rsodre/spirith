@@ -27,12 +27,19 @@ indefinitely at current rates. That is a forecast, not a guarantee, and the app 
 3. **Files** (later). Extend the runway to the bytes behind the name, so an artwork, its
    metadata and its address are funded together.
 
+## Status
+
+Phase 1 of the build: the vault core is implemented and tested (endow, notice, withdraw,
+per-name earmarks, pause that blocks deposits only). Renewal lands in Phase 2; nothing is
+deployed yet.
+
 ## AI usage
 
 Claude (Anthropic) was used throughout. It took part in the project brainstorm from the original
 idea, a sustainable IPFS node, through the branch into DNS domains and then ENS names, and
-produced the handover document in `specs/`. It assisted with the project structure, the scripts,
-and the tests. Design decisions, scope and what ships are the author's.
+produced the handover document in `specs/`, constantly updated as the project evolved. It
+assisted with the project structure, the scripts, and testing coordination. Design decisions,
+scope and what ships are the author's.
 
 ## Setup
 
@@ -66,7 +73,8 @@ minute, then again with `STEP=register`.
 
 ## Repository
 
-- `contracts/` — Foundry: Solidity sources, tests, deploy and proof scripts
+- `contracts/` — Foundry: `SpirithVault`, yield adapters, vendored ENSv2 interfaces, unit,
+  fuzz and invariant tests, deploy and proof scripts
 - `packages/core` — shared TypeScript: chain config, ENSv2 addresses and ABIs, pricing and
   runway math
 - `specs/` — the project handover and the build plan

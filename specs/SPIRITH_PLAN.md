@@ -120,18 +120,29 @@ Both keys live in the git-ignored `.env` (`DEPLOYER_PRIVATE_KEY`, `KEEPER_PRIVAT
 is the Phase 2 demo path; a PermissionedResolver name for the record write is registered in
 Phase 2 through manager.ens.dev.
 
-### Phase 1 — Vault core
+### Phase 1 ✅ — Vault core
 
 `SpirithVault.sol` per HANDOVER §4.1, with the custody model and two-exits invariant as written.
 
 - Storage per name: `reserve` (liquid USDC), `adapterShares`, `totalShares`; per patron `shares`, `noticeAt`, `noticeShares`.
 - `endow(label, amount)`: cap per name (100 USDC), mints internal shares at current assets-per-share, tops the reserve to `RESERVE_YEARS × renewPrice(1y)`, deposits the excess to the adapter. Reverts if the name is not `REGISTERED` or in grace.
 - `requestWithdraw(label, shares)` / `executeWithdraw(label)` after `NOTICE_PERIOD` (30 days). Pays from reserve then adapter. Pause never blocks it.
-- `pause()` guarded by an owner that can do nothing else; no other admin function exists. Consider renouncing after deploy and say so in the README either way.
+- `pause()` / `unpause()` behind OpenZeppelin `Ownable2Step` + `Pausable`; the owner can do nothing else. Consider renouncing after deploy and say so in the README either way.
 - Events: `Endowed`, `WithdrawRequested`, `Withdrawn`, `Paused`.
 - Tests: unit suite for every branch; invariant suite proving USDC balance of the vault only decreases by `Withdrawn` to the patron of record (Phase 2 adds the registrar leg); fuzz on share math with 6-decimal amounts.
 
 **Gate:** `forge test` green including invariants with 4096 runs; no function can move tokens to a third address (grep the ABI, then the test).
+
+Landed 2026-09-06. `SpirithVault.sol`, `IYieldAdapter.sol`, `MockYieldAdapter.sol`; 19 unit and
+fuzz tests, 5 invariants (conservation to patrons only, strangers hold nothing, every token
+earmarked, per-name solvency, no standing allowance) green at 4096 runs / 131,072 calls / 0
+reverts. Admin is OpenZeppelin `Ownable2Step` + `Pausable` (decided 2026-09-07): state-changing
+ABI is `endow`, `requestWithdraw`, `executeWithdraw`, `pause`, `unpause`, `transferOwnership`,
+`acceptOwnership`, `renounceOwnership` (overridden to lift a pause first); the single outbound
+`safeTransfer` goes to `msg.sender` in `executeWithdraw`.
+Deviations from the plan text, all recorded in HANDOVER §4.1–4.2: the adapter interface gained
+`asset`, `withdraw`, `sharesOf`, `convertToShares` and reports a rate range; the last patron out
+takes the rounding dust; `REGISTRY` is not yet a constructor argument (Phase 2 adds it).
 
 ### Phase 2 — Renewal path, live on Sepolia
 

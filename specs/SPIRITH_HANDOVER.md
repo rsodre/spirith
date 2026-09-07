@@ -160,29 +160,29 @@ Everything is on **one chain**. Money and name live together. This is a hard con
 
 **Custody model (decided 2026-09-05).** ENSv2 has no escrow, prepaid balance, share or "pay from this address" concept: `renew()` pulls the payment token from `msg.sender` via `safeTransferFrom`, and Enhanced Access Control roles govern the name, never money. So the vault holds the yield shares itself: it calls the ERC-4626 vault with `receiver = SpirithVault`, and a patron holds only an internal, per-name claim on those shares (`patronShares`). Converting shares to USDC on renewal day is an ERC-4626 `redeem`, not a swap. This is custody of money, stated openly. What stops it being a honeypot is the two-exits invariant above, not a custody trick: the only token destinations in the code are the registrar and the patron of record, with no admin path to a third, and the Foundry invariant suite must prove exactly that. A patron exits via `requestWithdraw` → `executeWithdraw` at the current share price; the 30-day notice is what keeps the resolver record truthful. Rejected alternatives: §13.
 
-**Sketch:**
+**Shape (as built in `contracts/src/SpirithVault.sol`):**
 
 ```solidity
-struct NameEndowment {
-    uint256 totalShares;        // yield-adapter shares held for this name
-    uint64  lastRenewedAt;
-    uint64  expiryCache;        // last known registrar expiry
-}
+struct Endowment { uint256 reserve; uint256 adapterShares; uint256 totalShares; } // per labelhash
+struct Position  { uint256 shares; uint256 noticeShares; uint64 noticeAt; }       // per patron
 
-mapping(bytes32 labelHash => NameEndowment) public endowments;
-mapping(bytes32 labelHash => mapping(address patron => uint256 shares)) public patronShares;
-mapping(bytes32 labelHash => mapping(address patron => uint64 withdrawRequestedAt)) public notices;
+function endow(string label, uint256 assets) returns (uint256 shares);   // anyone, any renewable name
+function requestWithdraw(string label, uint256 shares);                  // starts the 30-day notice
+function executeWithdraw(string label) returns (uint256 assets);         // after notice; never paused
+function pause(); function unpause(); function renounceOwnership();      // OZ Ownable2Step + Pausable;
+                                                                         // renouncing lifts any pause
 
-function endow(string calldata label, uint256 amount) external;
-function requestWithdraw(string calldata label, uint256 shares) external;
-function executeWithdraw(string calldata label) external;      // after NOTICE_PERIOD
-
-/// @notice Permissionless. Anyone may call. Caller receives a capped tip.
-function renew(string calldata label, uint64 duration) external;
-
-function runwayOf(string calldata label) external view
-    returns (uint64 fundedUntilTimestamp, uint256 balance, uint64 optimalDuration);
+/// @notice Permissionless. Anyone may call. Caller receives a capped tip.      (Phase 2)
+function renew(string label, uint64 duration);
+function runwayOf(string label) view returns (uint64 low, uint64 high, uint256 assets, uint64 optimalDuration);
 ```
+
+Share math uses one virtual share and one virtual asset per name (`assets × (S+1)/(A+1)`), which
+neutralises first-depositor inflation at the cost of at most one unit of dust; the last patron
+out takes the whole holding, dust included, so a name never carries orphaned shares. The
+adapter position is per-caller and the vault approves it for the exact amount of each deposit,
+so no standing allowance exists. `endow` uses `registrar.isRenewable(label)`, which admits
+`REGISTERED` names and names in grace and rejects pre-migrated v1 reservations.
 
 **`renew()` flow:**
 1. `price = registrar.getRenewPrice(label, duration, USDC)`; the discount is already applied.
@@ -197,17 +197,21 @@ function runwayOf(string calldata label) external view
 ### 4.2 `IYieldAdapter`
 
 ```solidity
-interface IYieldAdapter {
-    function deposit(uint256 assets) external returns (uint256 shares);
+interface IYieldAdapter {                       // per-caller accounting; the vault is one caller
+    function asset() external view returns (IERC20);
+    function deposit(uint256 assets) external returns (uint256 shares);   // pulls from msg.sender
+    function withdraw(uint256 assets) external returns (uint256 shares);  // exact assets out
     function redeem(uint256 shares) external returns (uint256 assets);
-    function convertToAssets(uint256 shares) external view returns (uint256);
-    function ratePerAnnumBps() external view returns (uint256); // for runway projection
+    function sharesOf(address) external view returns (uint256);
+    function convertToAssets(uint256) external view returns (uint256);
+    function convertToShares(uint256) external view returns (uint256);
+    function rateRangeBps() external view returns (uint16 low, uint16 high); // range, per §4.4
 }
 ```
 
 Ship **three** implementations:
 
-1. **`MockYieldAdapter`** — deterministic, configurable rate. **This is what the live demo runs on.** It cannot break on stage.
+1. **`MockYieldAdapter`** — deterministic simple interest at a fixed rate, realised by minting the asset to itself (ENS's MockUSDC has a permissionless `mint`). **This is what the live demo runs on.** It cannot break on stage and must never face a real token.
 2. **`ERC4626Adapter`** — generic wrapper. Works with Aave v3 supply, sDAI, Savings GHO, Morpho vaults, Aave Stable Vaults. **Write to ERC-4626, never to a specific protocol.**
 3. Optionally a thin `AaveStableVaultAdapter` if time allows.
 
