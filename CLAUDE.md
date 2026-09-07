@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | --- | --- |
 | Anything: scope, architecture, deadline, decisions | `specs/SPIRITH_HANDOVER.md` |
 | Which phase we are in, gates, project structure, commands | `specs/SPIRITH_PLAN.md` |
+| Post-hackathon proposal, future developments | `specs/SPIRITH_ROADMAP.md` (submission-facing; detail stays in the handover) |
 | Writing or editing CLAUDE.md, specs, README | `spec-discipline` skill |
 | Committing, asking the user, handling `_inbox/`, dev ports | `agent-workflow` skill |
 | Writing or reviewing Solidity or TypeScript design | `software-design-principles`, `software-design-review` skills |
@@ -145,7 +146,7 @@ re-proposed (spec §13): Arc, 1inch Aqua, Hedera/World for Phase 1, Aave Stable 
 v1, a Spirith token or DAO treasury, pixel archiving for generative art, pull-model custody
 (patron keeps shares and grants an allowance), one escrow clone per name.
 
-Phases 2 (DNS domains) and 3 (file permanence) in the spec are post-hackathon context only.
+Phases 2 (file permanence) and 3 (DNS domains, legacy) in the spec are post-hackathon context only.
 Do not build toward them now.
 
 ## Writing for the submission

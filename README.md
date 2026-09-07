@@ -22,10 +22,12 @@ indefinitely at current rates. That is a forecast, not a guarantee, and the app 
 
 1. **ENS names** (this hackathon, ETHGlobal ETHOnline 2026). Per-name vaults, permissionless
    renewal, a funding record on the name itself, and a liveness dashboard for the namespace.
-2. **DNS domains** (next). The same endowment applied to the web2 domains that NFT metadata
-   and immutable contracts still depend on, plus an on-chain fallback when a domain is lost.
-3. **Files** (later). Extend the runway to the bytes behind the name, so an artwork, its
-   metadata and its address are funded together.
+2. **Files** (next). The same endowment paying to keep a copy of the bytes an NFT points at,
+   so an artwork and its metadata stay reachable without anyone remembering a bill.
+3. **DNS domains** (later, for legacy contracts). The same endowment applied to the web2 domains
+   that immutable contracts already hard-code, plus an on-chain fallback when a domain is lost.
+
+The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMAP.md).
 
 ## Status
 

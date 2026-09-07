@@ -15,7 +15,7 @@
 
 **Phase 1 (this hackathon):** A non-custodial endowment for ENS names. A user deposits USDC into a per-name vault. The deposit earns yield. When the name comes due, *anyone* can trigger the renewal — the vault pays the ENSv2 registrar directly and tips the caller. The name publishes its own funding status as a resolver record, and a public dashboard scores the liveness of the whole namespace.
 
-**Phase 2+ (post-hackathon):** The same endowment mechanism extended to DNS domains, then to the files those domains point at. See §10–12.
+**Phase 2+ (post-hackathon):** Phase 1 is the finished product for the first of three bills. The same mechanic then pays the second, keeping a copy of the bytes an NFT points at, and last the third, the DNS domains legacy contracts still hard-code. See §10–12.
 
 ### The problem statement (use verbatim in the submission)
 
@@ -25,7 +25,7 @@
 
 **ENSv2 `renew()` is callable by any account, and accepts ERC-20 payment.**
 
-That single fact means the endowment contract never takes custody of the name. It holds money and pays a bill that anyone is allowed to pay. No approvals over the name, no wrapping, no transfer of ownership. Compare with DNS, where permanence requires handing someone a registrar login — which is exactly why ENS is Phase 1 and DNS is Phase 2.
+That single fact means the endowment contract never takes custody of the name. It holds money and pays a bill that anyone is allowed to pay. No approvals over the name, no wrapping, no transfer of ownership. Compare with DNS, where permanence requires handing someone a registrar login — which is exactly why ENS is Phase 1 and DNS is last.
 
 **Positioning line:** *We custody money. We never custody the name. The worst thing that can happen to a user is losing their deposit. It is structurally impossible for them to lose their identity.*
 
@@ -366,22 +366,59 @@ Phases, gates, project structure and commands live in `SPIRITH_PLAN.md`. Submit 
 
 ---
 
-## 10. Phase 2 — DNS domains
+## 10. Phase 2 — File permanence
 
-**Why it's Phase 2 and not Phase 1:** ENS renewal is permissionless and ERC-20-payable. DNS renewal is neither. A `.com` is a lease from a registry administered by an ICANN-accredited registrar held by a legal person. **A smart contract cannot be a registrant.** There is no trustless version.
+**Why it's Phase 2:** paying for storage is permissionless and contract-payable, exactly like an ENS renewal, and unlike a DNS lease. Phase 1 is the finished product for the first bill, names dying after 28 days of silence; it is not a prototype for Phase 2. Phase 2 applies the same runway mechanic to the second bill, the bytes an NFT points at. Each phase is a separate product built on the same rules: per-item earmarks, permissionless payment, two exits, a public runway.
 
-### 10.1 The three roles (keep them separate — conflating them is the classic mistake)
+### 10.1 Point `tokenURI` straight at the bytes (decided 2026-09-07)
+A permanent collection returns `ipfs://<cid>/<path>` from `tokenURI`. The CID is a fingerprint of the content, so the pointer can never expire, be rented, or be swapped for a fake. Marketplaces fetch `ipfs://` themselves; nothing else is needed on the pointer side. The only remaining job is keeping a copy of the bytes pinned, which is what the Phase 2 endowment pays for.
+
+Facts (verified 2026-09-07):
+- OpenSea's metadata standards document `https` and `ipfs://` URIs. `ar://` works in practice but is not documented there.
+- `web3://` (ERC-4804 Final, ERC-6860 Draft) resolves a name to a contract call, not to content, and no marketplace accepts it as a `tokenURI`. There is no `ens://` scheme.
+- Gateway URLs (`name.eth.limo/…`, `gateway.pinata.cloud/ipfs/…`) work in every client but hard-code a DNS domain someone else rents: `eth.link` expired in 2022 when its only renewer was in prison; `eth.limo` was hijacked at its registrar in 2024. Never put a gateway in a `tokenURI`.
+- An ENS name between the contract and the CID (contract reads the name's `contenthash`, a view call on the v1 PublicResolver and the ENSv2 PermissionedResolver) adds exactly one thing, a mutable pointer, at the price of a renewal bill and an owner who can change the art. For a frozen collection that is a liability. Rejected as the default; §13. It remains the mechanism for the one variant that needs mutability (§10.5, Hostage NFTs).
+
+### 10.2 Infrastructure already exists (this is not the hard part)
+- **Filecoin Onchain Cloud** (shipped late 2025) — **Filecoin Pay** gives streaming smart-contract payments to storage providers that settle per epoch, and **payment pauses automatically when storage proofs stop arriving**. Warm Storage ≈ **$2.50/TiB/month**. **Synapse SDK** is a normal JS upload/retrieve/pay API. **Filecoin Pin** bridges IPFS CIDs. *Use this. Do not run a node.*
+- **Arweave** — endowment model, pay once, funded on a declining-storage-cost assumption. Closest philosophical relative.
+- **Swarm** — postage stamp batches drain at the network price and data expires unless topped up. **Your runway mechanic already exists here** — just private, per-batch, and invisible.
+
+**The gap Spirith fills:** nobody has made the runway a *social object* — public, priced, collectively rescuable. It is a design problem, not an infrastructure problem.
+
+### 10.3 The endowment covers one line
+**Bytes** — Filecoin/IPFS, ~$2.50/TiB/month, paid by streaming contract payments that pause when storage proofs stop. With `tokenURI` pointing straight at a CID there is no route line and no domain. Legacy collections keep both (§11.3). For EUCLID (§11.6) the domain costs ~200× more per year than the storage: everything the industry talks about, decentralised storage and content addressing, is the cheap, solved part. What kills collections is a $12 annual invoice on one person's card.
+
+### 10.4 The liveness oracle
+An agent that walks a contract's `tokenURI`, follows every hop, fetches the bytes, hashes them, and compares against a committed hash. Gives a public, verifiable answer to **"is this NFT still actually there?"** — and it works read-only on *anyone's* collection. Showing a wall of blue-chip NFTs with red liveness scores is the strongest visual this project has.
+
+### 10.5 Mechanism variants (all discussed; pick per audience)
+- **The Decaying Gallery** — files don't die, they degrade. Resolution drops as runway shortens; a top-up snaps it back instantly. Best demo of the set, and cheap to build (it's a render policy, not a storage trick).
+- **Hostage NFTs** — per-file endowments; the NFT points at an ENS name whose contenthash the endowment controls, the one case that needs a mutable pointer (§10.1). Empty endowment → tombstone → the collector's JPEG goes blank publicly. Exposes the real, uncomfortable truth: most NFTs are one unpaid invoice from nothing.
+- **Attention Pays Rent** — every view costs half a cent (x402-metered) and every cent funds that file's endowment. Popular work funds its own immortality; forgotten work dies unless adopted. No token, no DAO, no death spiral.
+- **Runway as a market** — share token redeemable against the treasury; a Uniswap v4 hook widens the mint discount as runway shortens, turning a doom loop into a coordination game. ⚠️ Weakest: the reflexivity (runway ↓ → price ↓ → harder to refill) is a death spiral a judge will find in ten seconds.
+- **Mint-funded perpetual care** ⭐ — route $0.50 or 0.1% of every mint into that token's care fund at the moment of sale. The collector never makes a decision; the artist never sets a reminder; the collection reaches mint-out already funded. **This is the actual business.** It converts the pitch from charity ("rescue dying art") into infrastructure ("every mint funds its own permanence, automatically, for 16¢").
+
+---
+
+## 11. Phase 3 — DNS domains (legacy)
+
+**Why it's last:** only contracts whose immutable `tokenURI` already names a DNS domain need it; a new collection uses §10. ENS renewal is permissionless and ERC-20-payable. DNS renewal is neither. A `.com` is a lease from a registry administered by an ICANN-accredited registrar held by a legal person. **A smart contract cannot be a registrant.** There is no trustless version.
+
+### 11.1 The three roles (keep them separate — conflating them is the classic mistake)
 1. **Registrant** — the legal person on the lease. Cannot be a contract.
 2. **DNS operator** — whoever serves the zone. A *different* account, and free (Cloudflare, or the registrar's nameservers). Holds two records.
 3. **Payer** — the endowment. This is the only one that can be a contract.
 
-### 10.2 Payment options, ranked
+### 11.2 Payment options, ranked
 1. **Prepay 10 years** at registration. Most gTLDs allow it. One human action, then a decade of nothing. **For production this is genuinely the correct answer** and saying so onstage reads as rigour, not evasion.
 2. **Mainstream registrar API + stablecoin card.** Namecheap / Dynadot / Porkbun have APIs with prepaid account balances. Fund the balance from a USDC-backed card (Gnosis Pay, Kast, etc.). An agent watches expiry and fires renewals. Chain: USDC → card → registrar balance → renewal. Ugly, real, unattended.
 3. **Crypto-accepting registrars.** Njalla (BTC/LTC/XMR/DASH), 1984 Hosting, OrangeWebsite, Virtualine. Almost all BTC/Monero, essentially none take USDC, none has a renewal API. ⚠️ **Njalla registers as owner-of-record on your behalf** — a trust hole that is unacceptable in a permanence product.
 4. **Build the missing primitive: an x402-gated `renew()` service.** A small service exposing `renew(domain, years)` behind HTTP 402, accepting USDC, calling a registrar API, writing the receipt on-chain. **No smart contract on earth can currently renew a domain.** This is a genuine gap, not a hack — and a strong standalone hackathon project.
 
-### 10.3 Hosting: you mostly don't
+**Payment stays outside `SpirithVault`.** The two-exits rule (§4.1) forbids paying a registrar API or an x402 service from an ENS earmark. DNS endowments are a sibling contract with an explicit third exit, stated openly.
+
+### 11.3 Hosting: you mostly don't
 **DNSLink** removes the server entirely:
 
 ```
@@ -395,45 +432,26 @@ Recurring cost collapses to **registration renewal + two DNS records**. DNS host
 - Gateways churn. Treat the gateway as swappable (one CNAME). The endowment can run its own DNSLink gateway on **Akash** or **4EVERLAND**, both of which accept on-chain payment for compute.
 - Query strings: IPFS gateways ignore unknown query params (`v`, `hash`, `formula`, `resolution` are not reserved) — so a static file at the exact path answers correctly. ⚠️ Verify against the chosen gateway.
 
-### 10.4 Anchoring ownership
+### 11.4 Anchoring ownership
 ENS supports importing a **DNSSEC-signed** `.com` into ENS, including a **gasless offchain path**. This doesn't renew the registration — nothing on-chain can — but it makes ownership and the canonical CID provable from a contract, and gives a pointer that survives a hostile registrar.
 
 Publish the expected DNS records + zone hash on-chain so any tampering is detected within the hour. You cannot prevent a custodian going rogue; you can make it loud.
 
-### 10.5 The escape hatch — the real Phase 2 product
+How the import works (verified 2026-09-07):
+- **v1 on-chain:** DNSSEC (RSA/SHA-256 or ECDSA), a `_ens` TXT record `a=0x<address>`, and `proveAndClaim` on the DNSRegistrar for up to a few million gas. Six TLDs (`.art`, `.box`, `.club`, `.hiphop`, `.kred`, `.luxe`) run their own registrars.
+- **v1 gasless (ENSIP-17):** a root TXT record `ENS1 <resolver> [context]` read through CCIP-Read and verified against a DNSSEC oracle. Nothing on-chain, no NFT; a lapsed or transferred domain silently loses its ENS identity.
+- **ENSv2:** `DNSTLDResolver` checks the v1 registry, then the `ENS1` record, and delegates to `DNSTXTResolver` (records inline in the TXT) or `DNSAliasResolver` (rewrites `example.com` to `example.eth`). An alias inherits every record of the `.eth`, including `spirith.funded-until` and `spirith.patrons`, but never ownership. On-chain claiming stays on v1 at launch. The contracts are not final and are absent from the Sepolia beta, so no `.com` demo is possible there.
+- Whoever controls the DNS zone can re-prove and take the ENS name, in every variant. The anchor holds only as long as the zone does.
+
+### 11.5 The escape hatch — the real Phase 3 product
 Because an immutable `tokenURI` hard-codes a domain, **if the domain is lost, that URL is dead forever.** So build redundancy:
 - `<project>.eth` contenthash → root CID
 - bare `ipfs://<rootCID>/<path>`
 - **An on-chain fallback registry:** `(chain, contract) → canonical frozen-metadata CID`, versioned and attested.
 
-Today when a `tokenURI` 404s, every marketplace and wallet shows a broken image and gives up — there is *nowhere to look*. A public fallback registry is a small contract, an obvious idea, and nobody has built it. **This is the protocol contribution of Phase 2.**
+Today when a `tokenURI` 404s, every marketplace and wallet shows a broken image and gives up — there is *nowhere to look*. A public fallback registry is a small contract, an obvious idea, and nobody has built it. **This is the protocol contribution of Phase 3.**
 
-### 10.6 Name the caretaker
-Roughly one human action every few years — renew, or swap a dead gateway. The system's job is ensuring that person exists, is funded, and is alerted. Long term this is a foundation, the way archives have always worked. **Pretending it is fully autonomous is the lie that kills these projects.**
-
----
-
-## 11. Phase 3 — File permanence
-
-### 11.1 Infrastructure already exists (this is not the hard part)
-- **Filecoin Onchain Cloud** (shipped late 2025) — **Filecoin Pay** gives streaming smart-contract payments to storage providers that settle per epoch, and **payment pauses automatically when storage proofs stop arriving**. Warm Storage ≈ **$2.50/TiB/month**. **Synapse SDK** is a normal JS upload/retrieve/pay API. **Filecoin Pin** bridges IPFS CIDs. *Use this. Do not run a node.*
-- **Arweave** — endowment model, pay once, funded on a declining-storage-cost assumption. Closest philosophical relative.
-- **Swarm** — postage stamp batches drain at the network price and data expires unless topped up. **Your runway mechanic already exists here** — just private, per-batch, and invisible.
-
-**The gap Spirith fills:** nobody has made the runway a *social object* — public, priced, collectively rescuable. It is a design problem, not an infrastructure problem.
-
-### 11.2 The endowment covers three lines, not one
-1. **Bytes** — Filecoin/IPFS, ~$2.50/TiB/month
-2. **Name** — registrar renewal, ~$12/year, the only irreducibly web2 line item
-3. **Route** — the DNSLink record and a live gateway
-
-**The domain costs ~200× more than the art.** Everything the industry talks about — decentralised storage, content addressing — is the cheap, solved part. What actually kills collections is a $12 annual invoice on one person's card.
-
-### 11.3 The liveness oracle
-An agent that walks a contract's `tokenURI`, follows every hop, fetches the bytes, hashes them, and compares against a committed hash. Gives a public, verifiable answer to **"is this NFT still actually there?"** — and it works read-only on *anyone's* collection. Showing a wall of blue-chip NFTs with red liveness scores is the strongest visual this project has.
-
-### 11.4 Case study: collect-code / EUCLID (Roger's own collection)
-
+### 11.6 Case study: collect-code / EUCLID (Roger's own collection)
 Real migration target. 1,870 tokens, ERC-721 on Ethereum, **no `setBaseURI` — genuinely immutable.**
 
 ```
@@ -477,16 +495,14 @@ Then one TXT record and the existing immutable `tokenURI` resolves from IPFS wit
 
 **Storage cost for EUCLID:** ~300MB → **~$0.06/year**, versus ~$12/year for the domain.
 
-### 11.5 Mechanism variants (all discussed; pick per audience)
-- **The Decaying Gallery** — files don't die, they degrade. Resolution drops as runway shortens; a top-up snaps it back instantly. Best demo of the set, and cheap to build (it's a render policy, not a storage trick).
-- **Hostage NFTs** — per-file endowments; NFT points at an ENS name, not a CID. Empty endowment → resolver returns a tombstone → the collector's JPEG goes blank publicly. Exposes the real, uncomfortable truth: most NFTs are one unpaid invoice from nothing.
-- **Attention Pays Rent** — every view costs half a cent (x402-metered) and every cent funds that file's endowment. Popular work funds its own immortality; forgotten work dies unless adopted. No token, no DAO, no death spiral.
-- **Runway as a market** — share token redeemable against the treasury; a Uniswap v4 hook widens the mint discount as runway shortens, turning a doom loop into a coordination game. ⚠️ Weakest: the reflexivity (runway ↓ → price ↓ → harder to refill) is a death spiral a judge will find in ten seconds.
-- **Mint-funded perpetual care** ⭐ — route $0.50 or 0.1% of every mint into that token's care fund at the moment of sale. The collector never makes a decision; the artist never sets a reminder; the collection reaches mint-out already funded. **This is the actual business.** It converts the pitch from charity ("rescue dying art") into infrastructure ("every mint funds its own permanence, automatically, for 16¢").
+### 11.7 Name the caretaker
+Roughly one human action every few years — renew, or swap a dead gateway. The system's job is ensuring that person exists, is funded, and is alerted. Long term this is a foundation, the way archives have always worked. **Pretending it is fully autonomous is the lie that kills these projects.**
 
 ---
 
 ## 12. Continuity strategy
+
+The submission-facing proposal for everything after the hackathon, including future protocol developments, is `SPIRITH_ROADMAP.md`; it points back here for detail.
 
 **ENS, The Graph, Arc and Hedera all run continuity tracks** paying thousands specifically for extending an existing open-source project at a later event. Build Phase 1 clean, open and well-documented, and Phase 2 is not a roadmap slide — it is a **pre-qualified entry for the next hackathon.** Say so in the submission. Judges reward teams who will obviously still exist in six months.
 
@@ -498,12 +514,13 @@ Then one TXT record and the existing immutable `tokenURI` resolves from IPFS wit
 |---|---|
 | **Arc (Circle L1)** | Forces a cross-chain bridge into a design with no reason to leave Ethereum. Reads as a prize grab, and the bridge is the most likely thing to break on demo day. Arc mainnet also wasn't live, ruling out their Track 3. |
 | **1inch Aqua for the swap** | ENSv2's ERC-20 payment eliminated the swap entirely. Even before that, a vault swapping $8 once a year is a thin "Aqua app" — the Arc mistake at smaller scale. |
-| **Hedera / World** | No honest role in Phase 1. Both are strong for Phase 2/3 (x402 renewal service, HCS attestations, proof-of-human patronage) — revisit then. |
+| **Hedera / World** | No honest role in Phase 1. Both are strong for Phases 2/3 (proof-of-human patronage, HCS attestations, x402 renewal service) — revisit then. |
 | **Aave Stable Vaults for v1** | Accounting chain is Arbitrum (per Aave architecture doc, verified 2026-09-05; Ethereum is only an Earning Chain); same cross-chain objection as Arc. Two-step withdrawal; interest gated against system surplus. Deferred, not dismissed — the fixed rate is the one thing that would let the UI quote a date instead of a range. |
 | **Pull-model custody (patron keeps the yield shares, grants the vault an allowance)** | Breaks three load-bearing rules: no reserve buffer is possible, so a name dies if the yield venue is paused on renewal day; exit is instant, so "funded until 2149" describes a revocable allowance and the resolver record and liveness score become untrustworthy; and the blast radius is not smaller — a vault bug drains every approved wallet, the classic approval exploit. |
 | **One escrow clone per name (ERC-1167) instead of a singleton vault** | Storage isolation is real but a bug in the shared implementation still hits every clone; resolver write permissions multiply; costs days the hackathon lacks. Post-hackathon hardening path, not v1. |
 | **A Spirith token / DAO treasury** | "Token price tracks remaining runway" is a reflexive death spiral, and a single global treasury makes the blast radius the whole archive. Per-name earmarks instead. |
 | **Any cross-chain hop on the renewal critical path** | A name's survival must never depend on a bridge being up on a particular Tuesday. |
+| **An ENS name as the `tokenURI` anchor** (contract reads the name's contenthash, returns `ipfs://`) | A CID in `tokenURI` is already permanent, free and unforgeable. The ENS hop adds only mutability, and with it a renewal bill, an owner who can change the art, a same-chain constraint and a dependency on on-chain resolvers. KISS: point straight at the bytes. Kept only for the Hostage NFTs variant (§10.5). |
 | **Pixel archiving for generative art** | Archive the machine that makes the pixels, not the pixels. Cheaper, resolution-independent, preserves the generative nature. |
 
 ---
@@ -541,7 +558,7 @@ Then one TXT record and the existing immutable `tokenURI` resolves from IPFS wit
 - Aave Simple Earn (ERC-4626) — https://aave.com/docs/vaults/simple-earn/overview
 - Aave address book (`USDC_STATA_TOKEN`) — https://github.com/bgd-labs/aave-address-book
 
-**Storage / Phase 3**
+**Storage / Phase 2**
 - Filecoin Onchain Cloud — https://filecoin.io/blog/posts/introducing-filecoin-onchain-cloud
 - DNSLink — https://docs.ipfs.tech/concepts/dnslink/
 - Custom domains on IPFS — https://docs.ipfs.tech/how-to/websites-on-ipfs/custom-domains/
@@ -560,6 +577,6 @@ The strength of this project is that it is **honest about a boring problem**. Do
 
 - Lead with the 28-day grace period change. Make the problem ENS's own.
 - Say plainly: *we custody money, we never custody the name.*
-- Put the limitations on a slide, not in a footnote: yield is a forecast; there is a caretaker role in Phase 2; testnet yield is theatre.
+- Put the limitations on a slide, not in a footnote: yield is a forecast; there is a caretaker role in Phase 3; testnet yield is theatre.
 - Cite the 2022 prior art before a judge finds it.
 - The number that lands is **~$110–130**. Not the architecture.
