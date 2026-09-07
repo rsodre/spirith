@@ -14,7 +14,8 @@
     "check-types": "pnpm -r --if-present check-types",
     "test": "pnpm -r --if-present test",
     "test:fork:sepolia": "pnpm --filter @spirith/contracts test:fork:sepolia",
-    "check": "pnpm lint && pnpm check-types && pnpm test"
+    "check": "pnpm lint && pnpm check-types && pnpm test",
+    "test:fork:mainnet": "pnpm --filter @spirith/contracts test:fork:mainnet"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

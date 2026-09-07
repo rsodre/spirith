@@ -63,6 +63,7 @@ pnpm 10 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, whic
 |---|---|
 | `pnpm check` | the gate: Biome + `forge fmt --check`, `tsc --noEmit`, vitest, `forge test` |
 | `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
+| `pnpm test:fork:mainnet` | ERC-4626 adapter over Aave on a mainnet fork (`MAINNET_RPC_URL` in `.env`) |
 | `pnpm --filter @spirith/core test` | pricing and runway pins only |
 | `pnpm --filter @spirith/core gen:abis` | regenerate `src/generated/` from `artifacts/` |
 | `forge test --match-test <name>` (in `contracts/`) | one Solidity test |

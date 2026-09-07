@@ -39,7 +39,13 @@ wallet. Contracts (verified on Etherscan; addresses in `packages/core/deployment
 | SpirithVault | `0x82c2f76c78CeBD8D9767F35f35de332d1991EEa0` |
 | MockYieldAdapter (4% simulated) | `0x97E4218ECa394b7804Ed1514b947Bd0d75a26C34` |
 
-Nothing is audited. The subgraph, agent and dashboard are not built yet.
+Real yield is proven on an Ethereum mainnet fork rather than on Sepolia, where no lending
+market accepts the ENS test tokens: with the vault's `ERC4626Adapter` over Aave v3's USDC token,
+50 USDC endowed to a name earned 1.22 USDC in a simulated year (3.6% on the part deployed,
+the rest held liquid as the two-year reserve) and then paid a six-year renewal from the
+earmark. Run it yourself with `pnpm test:fork:mainnet` and a `MAINNET_RPC_URL`.
+
+Nothing is audited. The subgraph, the agent's tools and the dashboard are not built yet.
 
 ## AI usage
 
@@ -68,7 +74,8 @@ cp .env.example .env        # fill in SEPOLIA_RPC_URL and, for scripts, DEPLOYER
 
 ```sh
 pnpm check                  # lint, typecheck, unit tests (TypeScript and Solidity)
-pnpm test:fork:sepolia      # smoke-test the ENSv2 interfaces against live Sepolia
+pnpm test:fork:sepolia      # ENSv2 interfaces and the full demo path against live Sepolia
+pnpm test:fork:mainnet      # real yield from Aave on a mainnet fork (needs MAINNET_RPC_URL)
 ```
 
 Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is
@@ -97,8 +104,8 @@ forge script script/Deploy.s.sol ...        # redeploy the vault and rewrite the
 
 - `contracts/` — Foundry: `SpirithVault`, yield adapters, vendored ENSv2 interfaces, unit,
   fuzz and invariant tests, deploy and proof scripts
-- `packages/core` — shared TypeScript: chain config, ENSv2 addresses and ABIs, pricing and
-  runway math
+- `packages/core` — shared TypeScript: chain config, ENSv2 and Spirith addresses and ABIs,
+  pricing and runway math
 - `specs/` — the project handover and the build plan
 - `CLAUDE.md`, `AGENTS.md` — guidance for coding agents
 

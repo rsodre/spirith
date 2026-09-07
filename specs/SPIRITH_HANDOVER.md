@@ -196,6 +196,8 @@ so no standing allowance exists. `endow` uses `registrar.isRenewable(label)`, wh
 
 **Reserve buffer:** keep N years of renewals as liquid USDC in the vault; only the excess is deployed to the yield adapter. **A name's survival must never depend on an external system being available on the day it is due.** This principle recurs in every phase of this project.
 
+**Known gap (found 2026-09-07, not yet closed):** the reserve holds two one-year renewals (~16 USDC) but the heuristic prices total assets, so a six-year block (~27 USDC) still draws on the adapter. If the adapter is illiquid or paused that day, `renew` reverts even though the reserve could pay a shorter block. Intended fix: attempt the optimal duration; if the adapter withdraw reverts, fall back to the longest duration the liquid reserve alone can pay, and say so in the event. Tracked in `SPIRITH_ROADMAP.md`; small enough to land before submission if time allows.
+
 ### 4.2 `IYieldAdapter`
 
 ```solidity

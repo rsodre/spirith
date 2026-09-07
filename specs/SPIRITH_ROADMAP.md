@@ -106,6 +106,7 @@ therefore unusually easy to freeze (→ HANDOVER §11.6).
 - **Adapter list and simulation in the dashboard.** The name card lists available adapters
   with venue, rate range and risk notes, and lets a patron simulate the funded-until range under
   each before choosing; the agent's `optimalCadence` takes the adapter as an input.
+- **Liquidity-aware renewal fallback.** If the yield venue cannot pay out on renewal day, renew for the longest block the liquid reserve covers instead of failing (→ HANDOVER §4.1, known gap). A `refreshRecord(label)` that rewrites `spirith.funded-until` without a money movement belongs with it.
 - **Real yield on mainnet.** `ERC4626Adapter` over Aave's USDC token, already proven on a
   mainnet fork in Phase 1; mainnet deployment waits for ENSv2 mainnet.
 - **Aave Stable Vaults** once their accounting chain reaches Ethereum: a contractually fixed

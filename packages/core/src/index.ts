@@ -7,6 +7,14 @@ export {
   type EnsContractName,
 } from './ens/registry.js';
 export {
+  SPIRITH_CONTRACTS,
+  SPIRITH_DEPLOYMENTS,
+  SPIRITH_RECORDS,
+  spirithContract,
+  type SpirithContractName,
+  type SpirithDeployment,
+} from './spirith/registry.js';
+export {
   BASE_RATE_PER_SECOND,
   DISCOUNT_DENOMINATOR,
   DISCOUNT_POINTS,

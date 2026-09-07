@@ -59,6 +59,14 @@ contract RenewForkTest is Test {
         usdc.approve(address(vault), type(uint256).max);
     }
 
+    /// @dev The live name may have been renewed already (it was, in Phase 2); move the fork's
+    /// clock to one day before it is due so the vault's trigger holds.
+    function _warpIntoLeadWindow() internal {
+        uint64 expiry = registry.findExpiry(LABEL);
+        uint64 lead = vault.RENEW_LEAD();
+        if (expiry > block.timestamp + lead) vm.warp(expiry - lead + 1 days);
+    }
+
     function _giveNameAPermissionedResolver() internal returns (address resolver) {
         bytes memory init = abi.encodeCall(
             IResolverInit.initialize,
@@ -86,6 +94,7 @@ contract RenewForkTest is Test {
         vault.endow(LABEL, 50e6);
         assertEq(ITextResolver(resolver).text(vault.node(LABEL), "spirith.patrons"), "1");
 
+        _warpIntoLeadWindow();
         uint64 expiryBefore = registry.findExpiry(LABEL);
         uint64 duration = vault.optimalDuration(LABEL);
         assertEq(duration, 6 * 365 days, "$50 buys the six-year block");
@@ -110,6 +119,7 @@ contract RenewForkTest is Test {
         if (!registrar.isRenewable(LABEL)) return;
         vm.prank(patron);
         vault.endow(LABEL, 50e6);
+        _warpIntoLeadWindow();
         uint64 expiryBefore = registry.findExpiry(LABEL);
         vm.prank(keeper);
         vault.renew(LABEL, vault.optimalDuration(LABEL));

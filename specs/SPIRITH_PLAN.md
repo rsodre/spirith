@@ -173,13 +173,21 @@ full demo path. Decisions recorded in HANDOVER §4.1 (trigger = lead window and 
 duration; three exit ledgers) and §4.3 (`PrepareName` flow). `packages/core` now exports
 `spirithContract` and `SPIRITH_DEPLOYMENTS` from the deploy JSON and refreshed ABIs.
 
-### Phase 3 — Real yield proof
+### Phase 3 ✅ — Real yield proof
 
 - `ERC4626Adapter.sol`: `deposit` / `redeem` / `convertToAssets` / `rateRange()` over any ERC-4626; `rateRange` reads a configured `[lowBps, highBps]` because ERC-4626 exposes no rate.
 - `ERC4626Adapter.fork.t.sol` on a mainnet fork: deal USDC, endow, `vm.warp` a year, assert `convertToAssets` grew, renew against `MockRegistrar`. Print the accrued yield in the test log for the README.
-- Keeper CLI skeleton in `packages/agent`: `spirith-keeper once --label x` calls `renew` through viem using `core`.
 
 **Gate:** `forge test --fork-url $MAINNET_RPC_URL --match-contract ERC4626AdapterFork` green; the yield number is in the README.
+
+Landed 2026-09-07. `ERC4626Adapter.sol` (per-caller ledger over any ERC-4626, rate range set at
+deploy) and `test/ERC4626AdapterFork.t.sol` against Aave v3's `waEthUSDC` on an Ethereum mainnet
+fork at block 25,927,844 (`MAINNET_RPC_URL` in `.env`, the public node): 50 USDC
+endowed, 16.000042 kept liquid, 33.999958 deposited in Aave; after a one-year warp the earmark
+read 51.224465 USDC, i.e. **1.224466 USDC of real interest, 3.60% on the deployed part**; the
+keeper then bought the six-year block for 27.000071 USDC from the earmark. A second test
+withdraws principal plus a month of yield and leaves nothing in the adapter. The keeper CLI
+planned here moved to Phase 5, next to the subgraph client it will use.
 
 ### Phase 4 — Subgraph
 
@@ -195,7 +203,7 @@ duration; three exit ledgers) and §4.3 (`PrepareName` flow). `packages/core` no
 - `packages/agent/src/optimiser/`: pure functions. `optimalCadence({assets, rateLowBps, rateHighBps, tier, expiry, discountPoints, reserveYears})` simulates renew-1y-forever versus 2/3/6-year blocks over a horizon and returns the strategy with the longest runway at the low rate, with a one-paragraph explanation string. Vitest with the on-chain discount points.
 - MCP server (`@modelcontextprotocol/sdk`, stdio): `namesAtRisk(days)`, `runway(name)`, `optimalCadence(name)`, `portfolioHealth(address)`, `rescueProposal(name)`. Each tool queries the subgraph through `core`, runs the optimiser, and returns structured JSON plus a sentence a human can read.
 - `.mcp.json` example for Claude Code and Claude Desktop in the package README; a recorded transcript of three questions goes in the submission.
-- Keeper: `spirith-keeper watch` polls `namesAtRisk`, calls `renew` when the vault's trigger holds.
+- Keeper CLI in the same package: `spirith-keeper once --label x` reads the vault, simulates and sends `renew`; `watch` polls `namesAtRisk` and renews when the vault's trigger holds.
 
 **Gate:** From a fresh Claude Code session with the server configured, "which endowed names die in the next 30 days and what should each renew for?" returns live Sepolia data with cadences; `pnpm --filter @spirith/agent test` green.
 
@@ -233,7 +241,7 @@ Pages, each a folder under `components/pages/`:
 | `pnpm --filter @spirith/core test` | pricing and runway pins |
 | `pnpm --filter @spirith/agent test` | optimiser |
 | `pnpm --filter @spirith/agent mcp` | start the MCP server on stdio |
-| `pnpm --filter @spirith/agent keeper -- once --label <l>` | one renewal attempt |
+| `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one renewal attempt |
 | `pnpm --filter @spirith/subgraph deploy` | codegen, build, deploy to Studio |
 | `forge test` (in `contracts/`) | unit + invariants |
 | `forge test --fork-url $SEPOLIA_RPC_URL --match-contract RenewFork` | live registrar path |
