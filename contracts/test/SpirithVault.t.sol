@@ -10,6 +10,7 @@ import {SpirithVault} from "../src/SpirithVault.sol";
 import {MockYieldAdapter} from "../src/adapters/MockYieldAdapter.sol";
 import {IMintableERC20} from "../src/interfaces/ens/IMintableERC20.sol";
 import {IETHRegistrarRead} from "../src/interfaces/ens/IETHRegistrarRead.sol";
+import {IPermissionedRegistryRead} from "../src/interfaces/ens/IPermissionedRegistryRead.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockRegistrar} from "./mocks/MockRegistrar.sol";
 
@@ -40,13 +41,15 @@ contract SpirithVaultTest is Test {
         vault = new SpirithVault(
             IERC20(address(usdc)),
             IETHRegistrarRead(address(registrar)),
+            IPermissionedRegistryRead(address(registrar)),
             adapter,
             owner,
             CAP,
             RESERVE_YEARS
         );
-        registrar.setRenewable(NAME, true);
-        registrar.setRenewable(OTHER, true);
+        vm.warp(1_800_000_000);
+        registrar.register(NAME, uint64(block.timestamp) + 10 * 365 days, address(0));
+        registrar.register(OTHER, uint64(block.timestamp) + 10 * 365 days, address(0));
         _fund(alice, 1_000e6);
         _fund(bob, 1_000e6);
     }
@@ -76,7 +79,7 @@ contract SpirithVaultTest is Test {
     function test_endow_firstDepositMintsOneShare_perUnit_andSplitsReserve() public {
         uint256 shares = _endow(alice, NAME, 50e6);
         assertEq(shares, 50e6, "1:1 shares on first deposit");
-        (uint256 reserve, uint256 adapterShares, uint256 totalShares) =
+        (uint256 reserve, uint256 adapterShares, uint256 totalShares,) =
             vault.endowments(keccak256(bytes(NAME)));
         assertEq(reserve, RESERVE_TARGET, "reserve topped to target");
         assertEq(totalShares, 50e6);
@@ -89,7 +92,7 @@ contract SpirithVaultTest is Test {
 
     function test_endow_belowReserveTargetStaysLiquid() public {
         _endow(alice, NAME, 10e6);
-        (uint256 reserve, uint256 adapterShares,) = vault.endowments(keccak256(bytes(NAME)));
+        (uint256 reserve, uint256 adapterShares,,) = vault.endowments(keccak256(bytes(NAME)));
         assertEq(reserve, 10e6);
         assertEq(adapterShares, 0);
     }
@@ -116,7 +119,7 @@ contract SpirithVaultTest is Test {
     }
 
     function test_endow_revertsWhenNameNotRenewable() public {
-        registrar.setRenewable(NAME, false);
+        registrar.register(NAME, 0, address(0));
         vm.expectRevert(abi.encodeWithSelector(SpirithVault.NotRenewable.selector, NAME));
         _endow(alice, NAME, 1e6);
     }
@@ -223,7 +226,7 @@ contract SpirithVaultTest is Test {
         assertGt(out, 50e6, "a month of yield came along");
         assertEq(usdc.balanceOf(address(vault)), 0, "reserve fully used");
         assertLt(usdc.balanceOf(address(adapter)), adapterBefore, "adapter covered the rest");
-        (uint256 reserve, uint256 adapterShares, uint256 totalShares) =
+        (uint256 reserve, uint256 adapterShares, uint256 totalShares,) =
             vault.endowments(keccak256(bytes(NAME)));
         assertEq(reserve, 0);
         assertEq(adapterShares, 0);
@@ -274,6 +277,7 @@ contract SpirithVaultTest is Test {
         SpirithVault v = new SpirithVault(
             IERC20(address(usdc)),
             IETHRegistrarRead(address(registrar)),
+            IPermissionedRegistryRead(address(registrar)),
             adapter,
             address(0),
             CAP,

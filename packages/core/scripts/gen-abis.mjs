@@ -1,11 +1,23 @@
-// Regenerates src/generated/<group>/<Name>.ts from artifacts/<group>/<Name>.json.
-// ABIs are committed artifacts, never hand-edited; this script is the only writer of generated/.
-import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, basename } from 'node:path';
+// Regenerates src/generated/<group>/<Name>.ts from artifacts/<group>/<Name>.json, refreshing the
+// Spirith artifacts from contracts/out first. ABIs are committed artifacts, never hand-edited;
+// this script is the only writer of artifacts/spirith and generated/.
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
 const artifacts = join(root, 'artifacts');
 const generated = join(root, 'src', 'generated');
+const forgeOut = join(root, '..', '..', 'contracts', 'out');
+
+const SPIRITH_CONTRACTS = ['SpirithVault', 'MockYieldAdapter'];
+for (const name of SPIRITH_CONTRACTS) {
+  const built = join(forgeOut, `${name}.sol`, `${name}.json`);
+  if (!existsSync(built)) continue;
+  const { abi } = JSON.parse(readFileSync(built, 'utf8'));
+  mkdirSync(join(artifacts, 'spirith'), { recursive: true });
+  writeFileSync(join(artifacts, 'spirith', `${name}.json`), JSON.stringify(abi));
+  console.log(`refreshed artifacts/spirith/${name}.json from contracts/out`);
+}
 
 for (const group of readdirSync(artifacts)) {
   const outDir = join(generated, group);

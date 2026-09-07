@@ -19,6 +19,8 @@
       // Generated / vendored data: not hand-edited, so not ours to format.
       "!**/src/generated/**",
       "!**/artifacts/**",
+      // Written by contracts/script/Deploy.s.sol; the deploy script is its only author.
+      "!**/deployments/**",
       "!contracts/out/**",
       "!contracts/cache/**",
       "!contracts/broadcast/**",

@@ -65,7 +65,10 @@ pnpm 10 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, whic
 | `pnpm --filter @spirith/core test` | pricing and runway pins only |
 | `pnpm --filter @spirith/core gen:abis` | regenerate `src/generated/` from `artifacts/` |
 | `forge test --match-test <name>` (in `contracts/`) | one Solidity test |
-| `forge script script/ProveRenew.s.sol ...` | renew a name from a non-owner (see README) |
+| `forge script script/ProveRenew.s.sol ...` | renew a name straight on the registrar from a non-owner (Phase 0 proof) |
+| `forge script script/Deploy.s.sol ...` | deploy adapter + vault, write `packages/core/deployments/sepolia.json` |
+| `forge script script/{PrepareName,Endow,Renew}.s.sol ...` | owner resolver setup, endow, keeper renewal against the deployed vault (`LABEL=`) |
+| `pnpm --filter @spirith/core gen:abis` | refresh Spirith ABIs from `contracts/out` and regenerate `src/generated/` |
 
 Vendored ENSv2 interfaces live in `contracts/src/interfaces/ens/`; `test/Interfaces.t.sol`
 pins their selectors. Sepolia addresses live in exactly two mirrored places,
@@ -104,8 +107,10 @@ name, only money.
 - The vault holds the yield shares itself; a patron holds only an internal per-name claim.
   ENSv2 offers no escrow or share concept. The two-exits rule, not a custody trick, is what
   keeps this from being a honeypot (spec §4.1 custody model).
-- Exactly two exits for funds: to the ENS registrar as a renewal payment, or back to a patron.
-  The renewal path calls the registrar directly, never an intermediary.
+- Exactly two exits for funds: to the ENS registrar as a renewal payment, or back to a patron,
+  plus the capped keeper tip that exists only inside a successful renewal. The renewal path
+  calls the registrar directly, never an intermediary. `renew()` needs the lead window and the
+  exact optimal duration; there is no early-renew path (spec §4.1).
 - No admin key can move funds. Pause blocks new deposits only; it never blocks a withdrawal
   or a renewal.
 - Withdrawals are delayed by a 30-day notice period, never blocked.

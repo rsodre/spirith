@@ -29,9 +29,15 @@ indefinitely at current rates. That is a forecast, not a guarantee, and the app 
 
 ## Status
 
-Phase 1 of the build: the vault core is implemented and tested (endow, notice, withdraw,
-per-name earmarks, pause that blocks deposits only). Renewal lands in Phase 2; nothing is
-deployed yet.
+Phase 2 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
+wallet. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
+
+| Contract | Address |
+|---|---|
+| SpirithVault | `0x82c2f76c78CeBD8D9767F35f35de332d1991EEa0` |
+| MockYieldAdapter (4% simulated) | `0x97E4218ECa394b7804Ed1514b947Bd0d75a26C34` |
+
+Nothing is audited. The subgraph, agent and dashboard are not built yet.
 
 ## AI usage
 
@@ -74,6 +80,16 @@ LABEL=<some-registered-name> forge script script/ProveRenew.s.sol \
 
 To register a test name of your own: run `script/RegisterName.s.sol` with `STEP=commit`, wait a
 minute, then again with `STEP=register`.
+
+Endow and renew through the deployed vault (all scripts take `LABEL=<name>`):
+
+```sh
+cd contracts
+forge script script/PrepareName.s.sol ...   # name owner: own resolver + let the vault write records
+forge script script/Endow.s.sol ...         # any wallet: mint test USDC and endow (AMOUNT, default 50 USDC)
+forge script script/Renew.s.sol ...         # any wallet: renew for the optimal duration, collect the tip
+forge script script/Deploy.s.sol ...        # redeploy the vault and rewrite the deployments file
+```
 
 ## Repository
 

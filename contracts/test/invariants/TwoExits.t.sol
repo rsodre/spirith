@@ -8,6 +8,7 @@ import {SpirithVault} from "../../src/SpirithVault.sol";
 import {MockYieldAdapter} from "../../src/adapters/MockYieldAdapter.sol";
 import {IMintableERC20} from "../../src/interfaces/ens/IMintableERC20.sol";
 import {IETHRegistrarRead} from "../../src/interfaces/ens/IETHRegistrarRead.sol";
+import {IPermissionedRegistryRead} from "../../src/interfaces/ens/IPermissionedRegistryRead.sol";
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockRegistrar} from "../mocks/MockRegistrar.sol";
 
@@ -23,6 +24,10 @@ contract VaultHandler is Test {
 
     uint256 public ghostEndowed;
     uint256 public ghostWithdrawn;
+    uint256 public ghostPaidToRegistrar;
+    uint256 public ghostTips;
+    address public keeper = makeAddr("keeper");
+    address internal constant BENEFICIARY = address(0xBEEF);
     mapping(address => uint256) public ghostPaidTo;
 
     constructor(SpirithVault vault_, MockERC20 usdc_, MockYieldAdapter adapter_) {
@@ -86,6 +91,22 @@ contract VaultHandler is Test {
         ghostPaidTo[patron] += out;
     }
 
+    function renew(uint256 l) external {
+        string memory label = labels[l % labels.length];
+        (,,, uint64 duration) = vault.runwayOf(label);
+        if (duration == 0) return;
+        uint256 registrarBefore = usdc.balanceOf(BENEFICIARY);
+        uint256 keeperBefore = usdc.balanceOf(keeper);
+        vm.prank(keeper);
+        try vault.renew(label, duration) returns (uint256 price, uint256 tip) {
+            assertEq(usdc.balanceOf(BENEFICIARY) - registrarBefore, price);
+            assertEq(usdc.balanceOf(keeper) - keeperBefore, tip);
+            assertLe(tip, vault.TIP_CAP(), "tip capped");
+            ghostPaidToRegistrar += price;
+            ghostTips += tip;
+        } catch {}
+    }
+
     function warp(uint256 secs) external {
         vm.warp(block.timestamp + bound(secs, 1, 60 days));
     }
@@ -117,34 +138,50 @@ contract TwoExitsInvariantTest is Test {
         registrar = new MockRegistrar();
         adapter = new MockYieldAdapter(IMintableERC20(address(usdc)), 500);
         vault = new SpirithVault(
-            IERC20(address(usdc)), IETHRegistrarRead(address(registrar)), adapter, owner, 100e6, 2
+            IERC20(address(usdc)),
+            IETHRegistrarRead(address(registrar)),
+            IPermissionedRegistryRead(address(registrar)),
+            adapter,
+            owner,
+            100e6,
+            2
         );
         handler = new VaultHandler(vault, usdc, adapter);
+        vm.warp(1_800_000_000);
         for (uint256 i; i < handler.labelCount(); ++i) {
-            registrar.setRenewable(handler.labels(i), true);
+            registrar.register(handler.labels(i), uint64(block.timestamp) + 20 days, address(0));
         }
         targetContract(address(handler));
     }
 
-    /// Tokens leave {vault, adapter} only to patrons: everything minted in, minus what the
-    /// system still holds, is exactly what patrons were paid.
-    function invariant_conservation_onlyPatronsArePaid() public view {
+    /// Tokens leave {vault, adapter} only as renewal payments to the registrar's beneficiary,
+    /// capped tips to the keeper in the same transaction, or withdrawals to patrons: everything
+    /// minted in, minus what the system still holds, is exactly the sum of those three.
+    function invariant_conservation_threeExitsOnly() public view {
         // Pending interest is unminted, so conservation is checked on minted supply only.
         uint256 systemHeld = usdc.balanceOf(address(vault)) + usdc.balanceOf(address(adapter));
         uint256 mintedIn = handler.ghostEndowed() + adapter.totalYieldMinted();
-        assertEq(mintedIn - systemHeld, handler.ghostWithdrawn(), "leak to a third party");
+        uint256 exits =
+            handler.ghostWithdrawn() + handler.ghostPaidToRegistrar() + handler.ghostTips();
+        assertEq(mintedIn - systemHeld, exits, "leak to a third party");
         uint256 paidToPatrons;
         for (uint256 i; i < handler.patronCount(); ++i) {
             paidToPatrons += handler.ghostPaidTo(handler.patrons(i));
         }
         assertEq(paidToPatrons, handler.ghostWithdrawn());
+        assertEq(usdc.balanceOf(registrar.BENEFICIARY()), handler.ghostPaidToRegistrar());
+        assertEq(usdc.balanceOf(handler.keeper()), handler.ghostTips());
     }
 
     /// No third address ever holds vault money.
     function invariant_strangersHoldNothing() public view {
         assertEq(usdc.balanceOf(stranger), 0);
         assertEq(usdc.balanceOf(owner), 0);
-        assertEq(usdc.balanceOf(address(registrar)), 0);
+        assertEq(
+            usdc.balanceOf(address(registrar)),
+            0,
+            "payments go to the beneficiary, never the registrar"
+        );
         assertEq(usdc.balanceOf(address(handler)), 0);
     }
 
@@ -154,7 +191,7 @@ contract TwoExitsInvariantTest is Test {
         uint256 reserves;
         uint256 shares;
         for (uint256 i; i < handler.labelCount(); ++i) {
-            (uint256 r, uint256 s,) = vault.endowments(keccak256(bytes(handler.labels(i))));
+            (uint256 r, uint256 s,,) = vault.endowments(keccak256(bytes(handler.labels(i))));
             reserves += r;
             shares += s;
         }
@@ -174,8 +211,9 @@ contract TwoExitsInvariantTest is Test {
         }
     }
 
-    /// The vault never leaves an allowance behind after talking to the adapter.
+    /// The vault never leaves an allowance behind after talking to the adapter or registrar.
     function invariant_noStandingAllowance() public view {
         assertEq(usdc.allowance(address(vault), address(adapter)), 0);
+        assertEq(usdc.allowance(address(vault), address(registrar)), 0);
     }
 }

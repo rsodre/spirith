@@ -158,6 +158,8 @@ Everything is on **one chain**. Money and name live together. This is a hard con
 - **Multi-patron per name.** Anyone can top up any name. Each patron can withdraw only their own share. This enables "adopt a name" and is what makes it a public good rather than a subscription.
 - **Deposit cap for the hackathon** (e.g. $100 equivalent) + "unaudited testnet software" banner. Correct posture, and it preempts the audit question.
 
+**Exits, precisely.** Tokens leave a name's earmark to the registrar's beneficiary as a renewal payment, to the keeper as the capped tip in that same transaction, or to the patron of record after notice. The invariant suite (`test/invariants/TwoExits.t.sol`) reconciles every token minted into the system against exactly those three ledgers.
+
 **Custody model (decided 2026-09-05).** ENSv2 has no escrow, prepaid balance, share or "pay from this address" concept: `renew()` pulls the payment token from `msg.sender` via `safeTransferFrom`, and Enhanced Access Control roles govern the name, never money. So the vault holds the yield shares itself: it calls the ERC-4626 vault with `receiver = SpirithVault`, and a patron holds only an internal, per-name claim on those shares (`patronShares`). Converting shares to USDC on renewal day is an ERC-4626 `redeem`, not a swap. This is custody of money, stated openly. What stops it being a honeypot is the two-exits invariant above, not a custody trick: the only token destinations in the code are the registrar and the patron of record, with no admin path to a third, and the Foundry invariant suite must prove exactly that. A patron exits via `requestWithdraw` → `executeWithdraw` at the current share price; the 30-day notice is what keeps the resolver record truthful. Rejected alternatives: §13.
 
 **Shape (as built in `contracts/src/SpirithVault.sol`):**
@@ -186,7 +188,7 @@ so no standing allowance exists. `endow` uses `registrar.isRenewable(label)`, wh
 
 **`renew()` flow:**
 1. `price = registrar.getRenewPrice(label, duration, USDC)`; the discount is already applied.
-2. Require the trigger: `expiry - now <= RENEW_LEAD` (30 days, expiry from `ETHRegistry.findExpiry`), **or** `duration` equals what the on-chain heuristic (§6) returns for this name. ENSv2 has no window of its own; this guard only stops keepers burning yield by renewing years early. It never rejects a name inside grace.
+2. Require the trigger: `expiry - now <= RENEW_LEAD` (30 days, expiry from `ETHRegistry.findExpiry`); names in grace pass trivially. ENSv2 has no window of its own; this guard stops keepers burning yield by renewing years early. **And** require `duration == optimalDuration(label)` (decided 2026-09-07): the keeper names the duration so a price change between simulation and execution reverts instead of overspending, and no keeper can pick a worse cadence than the earmark affords. There is no "renew early if the heuristic approves" path; it would let a keeper farm tips by prepaying the whole earmark.
 3. Pull `price + tip` into liquid USDC: from the reserve first, then `adapter.redeem` for any shortfall.
 4. `USDC.approve(registrar, price)`; `registrar.renew(label, duration, USDC, SPIRITH_REFERRER)` with `SPIRITH_REFERRER = bytes32(uint256(uint160(address(this))))`.
 5. Transfer `tip` to `msg.sender`. **Tip must be capped** — `min(bps * price, TIP_CAP)` — and paid from that name's own earmark, so keeper incentives cannot be farmed into draining a vault.
@@ -234,7 +236,7 @@ spirith.patrons      = <count>
 
 Composable: any wallet, marketplace or resolver sees the name is endowed without asking Spirith. Together with permissionless `renew()` this is the ENS-track centrepiece.
 
-Mechanics (facts in §2): the name owner calls `authorizeTextRoles(dnsName, key, SpirithVault, true)` once per key, offered in the endow flow as an owner-only, optional step ("let Spirith publish this name's funding status"). The vault writes on every `endow`, `renew` and `executeWithdraw`, always best-effort. A name whose owner never authorises Spirith is still renewed; the dashboard shows "record: not authorised".
+Mechanics (facts in §2): the name owner calls `authorizeTextRoles(dnsName, key, SpirithVault, true)` once per key, offered in the endow flow as an owner-only, optional step ("let Spirith publish this name's funding status"). A name on the shared `PublicResolverV2` first needs its own PermissionedResolver: `VerifiableFactory.deployProxy` with `initialize(owner, allRoles, [])`, then `ETHRegistry.setResolver`; `contracts/script/PrepareName.s.sol` does all three from the owner key, and the dashboard offers the same. The vault writes on every `endow`, `renew` and `executeWithdraw`, best-effort with a 150k gas stipend per call, and reports `recordWritten` in `Renewed`. A name whose owner never authorises Spirith is still renewed; the dashboard shows "record: not authorised". `spirith.funded-until` carries the low end of the runway range as a unix timestamp.
 
 There is no renewer role to define: `renew()` is open to everyone by design and the registry's `ROLE_RENEW` belongs to the registrar. Subregistries (one endowment covering a subname tree) stay in the cut list as the optional extension.
 

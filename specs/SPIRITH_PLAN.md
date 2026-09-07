@@ -144,7 +144,7 @@ Deviations from the plan text, all recorded in HANDOVER §4.1–4.2: the adapter
 `asset`, `withdraw`, `sharesOf`, `convertToShares` and reports a rate range; the last patron out
 takes the rounding dust; `REGISTRY` is not yet a constructor argument (Phase 2 adds it).
 
-### Phase 2 — Renewal path, live on Sepolia
+### Phase 2 ✅ — Renewal path, live on Sepolia
 
 - `renew(label, duration)` per HANDOVER §4.1 steps 1–6, tip `min(1% × price, 1 USDC)`, `RENEW_LEAD` 30 days, best-effort `setText` with a gas stipend.
 - `Cadence.sol`: `optimalDuration(label)` returns the longest of {6y, 3y, 2y, 1y} whose price leaves the reserve floor intact, else the longest affordable, else revert `Unfunded`.
@@ -155,6 +155,23 @@ takes the rounding dust; `REGISTRY` is not yet a constructor argument (Phase 2 a
 - Extend the invariant suite: tokens leave only to `BENEFICIARY` via the registrar or to the patron.
 
 **Gate:** Sepolia tx hashes for `endow`, `renew` (by a non-owner), and a visible `spirith.funded-until` record; `forge test` green with the fork test.
+
+Landed 2026-09-07. Deployed on Sepolia (block 11655091, recorded in
+`packages/core/deployments/sepolia.json`): `SpirithVault`
+`0x82c2f76c78CeBD8D9767F35f35de332d1991EEa0`, `MockYieldAdapter` (4%)
+`0x97E4218ECa394b7804Ed1514b947Bd0d75a26C34`, owner = deployer, not yet renounced, both
+Etherscan-verified 2026-09-07 (a natspec edit after deploy had to be reverted to match the
+bytecode metadata; verify before editing source next time). Live demo on `spirithbeta.eth`:
+`PrepareName` deployed PermissionedResolver `0xd16bCF2279d60e393b9Ddf0296Ee445a769498Cf`, set
+it on the registry and authorised the vault for both keys; `Endow` 50 USDC
+(`0x860ec1099c6f1156d972b1eb67af4f94938b8fc4bf98765538b30ac086af0902`); keeper `Renew` for the
+six-year block at 27.000071 USDC with a 0.27 tip
+(`0xd5d71a027adbd229668337595a854b2e0cdca0b24f1e95db7674dc0c28acdb34`), expiry 2026-10-04 →
+2032-10-03, `spirith.funded-until = 2074952700`. Tests: 48 local (23 renewal, 21 vault, 3
+selector pins, 5 invariants at 4096 runs / 0 reverts) plus 7 on a Sepolia fork including the
+full demo path. Decisions recorded in HANDOVER §4.1 (trigger = lead window and exact optimal
+duration; three exit ledgers) and §4.3 (`PrepareName` flow). `packages/core` now exports
+`spirithContract` and `SPIRITH_DEPLOYMENTS` from the deploy JSON and refreshed ABIs.
 
 ### Phase 3 — Real yield proof
 
