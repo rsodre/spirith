@@ -156,7 +156,7 @@ Everything is on **one chain**. Money and name live together. This is a hard con
 - **No admin key can move funds.** Pause may block *new deposits only*. It may never block a withdrawal or a renewal. State this in the README's first paragraph; it is the first question a competent judge asks.
 - **Withdrawals are always available**, subject to a notice period (30 days) so that "funded until 2149" stays a truthful claim. Delayed, never blocked.
 - **Multi-patron per name.** Anyone can top up any name. Each patron can withdraw only their own share. This enables "adopt a name" and is what makes it a public good rather than a subscription.
-- **Deposit cap for the hackathon** (e.g. $100 equivalent) + "unaudited testnet software" banner. Correct posture, and it preempts the audit question.
+- **Deposit cap for the hackathon** (200 test USDC as deployed; 100 until 2026-09-09, raised so a $150 endowment, perpetual at 4%, can be made on stage) + "unaudited testnet software" banner. Correct posture, and it preempts the audit question.
 
 **Exits, precisely.** Tokens leave a name's earmark to the registrar's beneficiary as a renewal payment, to the keeper as the capped tip in that same transaction, or to the patron of record after notice. The invariant suite (`test/invariants/TwoExits.t.sol`) reconciles every token minted into the system against exactly those three ledgers.
 

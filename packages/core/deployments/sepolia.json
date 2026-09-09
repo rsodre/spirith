@@ -1,8 +1,8 @@
 {
-  "block": 11655091,
+  "block": 11670356,
   "chainId": 11155111,
-  "mockYieldAdapter": "0x97E4218ECa394b7804Ed1514b947Bd0d75a26C34",
+  "mockYieldAdapter": "0x7d1CDa3630BC1c4f822303dCE0c290a0692d467C",
   "owner": "0x62d48EA396a8BD7A5627BbAB5969DD45DB2b42c4",
-  "spirithVault": "0x82c2f76c78CeBD8D9767F35f35de332d1991EEa0",
+  "spirithVault": "0xA7eD0f0617c3B381aA1aaf0afA511bf1f820E820",
   "usdc": "0x768F42455A2D082E23ceeF7d51e5787C82d67a39"
 }

@@ -260,7 +260,7 @@ Pages, each a folder under `components/pages/`:
 - `/graveyard`: lapsed names.
 - `/bench`: unlinked contract bench page per `web3-chain-layer`.
 - Chain layer: one registry from `core`, wagmi hooks one-per-entrypoint in `hooks/chain/`, tx toasts morphing at one id, receipt awaited, indexing phase until the subgraph shows the change.
-- Banner: "unaudited testnet software, deposits capped at 100 test USDC, yield on testnet is simulated".
+- Banner: "unaudited testnet software, deposits capped at 200 test USDC, yield on testnet is simulated".
 
 **Gate:** The 90-second demo script (→ HANDOVER §9.5) runs end to end on Sepolia from a clean browser profile against `pnpm dev`, twice.
 
@@ -284,6 +284,20 @@ toast morphing at one id). Observed against live Sepolia: 90 names within 28 day
 4,768 USDC of yearly renewals unfunded; spirithbeta's card shows 22.73 USDC, funded through
 2035 at 4%, record `funded until 2 Oct 2035, 1 patron`, the keeper's six-year renewal with its
 0.27 tip. `pnpm check` and `next build` green.
+
+Redeployed 2026-09-09 with `DEPOSIT_CAP = 200e6` (decided the same day: $150 is the smallest
+round deposit that is perpetual at 4% with the two-year reserve, and the 100 cap could not
+prove it): `SpirithVault` `0xA7eD0f0617c3B381aA1aaf0afA511bf1f820E820`, `MockYieldAdapter`
+`0x7d1CDa3630BC1c4f822303dCE0c290a0692d467C`, block 11670356, both Etherscan-verified.
+Subgraph redeployed as `spirith-sepolia` v0.2.0 (`SUBGRAPH_QUERY_URL` updated). `PrepareName`
+re-authorised the new vault on spirithbeta's existing resolver, then `Endow` put 150 USDC in
+(`0x672b6aba8fd2faed2c4885a9be6f02e89928f167a2de75a0ccba71ce72b314e6`): optimal block six
+years, funded until 2532, i.e. the perpetual horizon. The old vault still holds spirithbeta's
+22.73 USDC for the deployer, withdrawable after notice. Endow presets are $25, $50, $100, $150
+and the form projects the funded-until range for the typed amount with the vault's heuristic.
+v0.2.0 reached chain head the same evening and lists the endowment. The subgraph's
+`recordWritten` only follows `Renewed` (`Endowed` carries no flag), so the endowed list and the
+name card read `spirith.funded-until` from each resolver instead.
 
 #### Outstanding
 

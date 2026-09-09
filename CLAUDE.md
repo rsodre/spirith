@@ -150,7 +150,7 @@ name, only money.
 - Always pass Spirith's own address as `referrer` on every renewal.
 - No cross-chain hop anywhere on the renewal critical path.
 - Honest UI: with a variable yield rate, quote a funded-until *range*, never a single date.
-- Hackathon posture: deposit cap (~$100) plus an "unaudited testnet software" banner.
+- Hackathon posture: deposit cap (200 test USDC, raised from 100 on 2026-09-09 so a $150 endowment can prove perpetuity on stage) plus an "unaudited testnet software" banner.
 
 ## Verified ENSv2 facts that shape the code (spec §2 has the sources)
 

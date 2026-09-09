@@ -70,7 +70,7 @@ export function AboutPage() {
           adapter is proven on an Ethereum mainnet fork against Aave's USDC vault. On mainnet a
           single yield venue would be a single point of failure, so the vault should offer several
           approved providers per name and let patrons choose and switch between them; today it has
-          one. Nothing is audited, and deposits are capped at 100 test USDC.
+          one. Nothing is audited, and deposits are capped at 200 test USDC.
         </p>
 
         <h2>Code</h2>

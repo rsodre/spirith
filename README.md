@@ -37,8 +37,8 @@ about it, and a dashboard shows it all. Contracts (verified on Etherscan; addres
 
 | Contract | Address |
 |---|---|
-| SpirithVault | `0x82c2f76c78CeBD8D9767F35f35de332d1991EEa0` |
-| MockYieldAdapter (4% simulated) | `0x97E4218ECa394b7804Ed1514b947Bd0d75a26C34` |
+| SpirithVault | `0xA7eD0f0617c3B381aA1aaf0afA511bf1f820E820` |
+| MockYieldAdapter (4% simulated) | `0x7d1CDa3630BC1c4f822303dCE0c290a0692d467C` |
 
 Real yield is proven on an Ethereum mainnet fork rather than on Sepolia, where no lending
 market accepts the ENS test tokens: with the vault's `ERC4626Adapter` over Aave v3's USDC token,

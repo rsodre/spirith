@@ -3,12 +3,14 @@
 import { useMemo } from 'react';
 import { NameLink } from '@/components/NameLink';
 import { Spinner } from '@/components/ui';
+import { type RecordTarget, useSpirithFundedUntilMany } from '@/hooks/chain/use-resolver';
 import { useVaultRunways } from '@/hooks/chain/use-vault';
 import { useEndowments } from '@/hooks/queries/use-endowments';
 import { useNamespace } from '@/hooks/queries/use-namespace';
 import { formatDate, formatUsdc, fundedRange } from '@/lib/format';
 
 const EMPTY: readonly string[] = [];
+const NO_TARGETS: readonly RecordTarget[] = [];
 
 // The names with a standing order. Principal and patrons from the subgraph; the live earmark
 // and its funded-until range from the vault, one multicall for the whole list.
@@ -18,6 +20,16 @@ export function EndowedPage() {
   const rows = q.data?.endowments ?? [];
   const labels = useMemo(() => (q.data ? q.data.endowments.map(e => e.label) : EMPTY), [q.data]);
   const { runways } = useVaultRunways(labels);
+  // The record itself, from each name's resolver: the subgraph only learns of a write from
+  // `Renewed`, so a fresh endowment's record is invisible to it.
+  const targets = useMemo<readonly RecordTarget[]>(
+    () =>
+      q.data
+        ? q.data.endowments.map(e => ({ label: e.label, resolver: e.name.resolver }))
+        : NO_TARGETS,
+    [q.data],
+  );
+  const { fundedUntil, isLoading: recordsLoading } = useSpirithFundedUntilMany(targets);
   const ns = namespace.data?.namespace ?? null;
 
   return (
@@ -92,8 +104,16 @@ export function EndowedPage() {
                     </td>
                     <td className="num">{e.patronCount}</td>
                     <td className="num">{e.renewals}</td>
-                    <td className={e.recordWritten ? 'text-verdigris' : 'text-muted'}>
-                      {e.recordWritten ? 'published' : 'not authorised'}
+                    <td
+                      className={fundedUntil.get(e.label) != null ? 'text-verdigris' : 'text-muted'}
+                    >
+                      {recordsLoading ? (
+                        <Spinner />
+                      ) : fundedUntil.get(e.label) != null ? (
+                        `published, until ${formatDate(fundedUntil.get(e.label) as bigint)}`
+                      ) : (
+                        'not published'
+                      )}
                     </td>
                   </tr>
                 );

@@ -42,3 +42,41 @@ export function useSpirithRecords(label: string, resolver: Address | undefined) 
   }, [q.data]);
   return { records, isLoading: enabled && q.isLoading };
 }
+
+export interface RecordTarget {
+  readonly label: string;
+  readonly resolver: Address | null;
+}
+
+/** `spirith.funded-until` for many names in one multicall; a name whose resolver has no
+ * record, or no resolver, maps to null. Keyed by label. */
+export function useSpirithFundedUntilMany(targets: readonly RecordTarget[]) {
+  const readable = useMemo(
+    () => targets.filter(t => t.resolver !== null && t.resolver !== ZERO_ADDRESS),
+    [targets],
+  );
+  const contracts = useMemo(
+    () =>
+      readable.map(t => ({
+        ...resolverContract(t.resolver as Address),
+        functionName: 'text' as const,
+        args: [nameNode(t.label), SPIRITH_RECORDS.fundedUntil] as const,
+      })),
+    [readable],
+  );
+  const q = useReadContracts({
+    contracts,
+    allowFailure: true,
+    query: { enabled: contracts.length > 0 },
+  });
+  const fundedUntil = useMemo(() => {
+    const map = new Map<string, bigint | null>();
+    for (const t of targets) map.set(t.label, null);
+    q.data?.forEach((r, i) => {
+      const t = readable[i];
+      if (t && r.status === 'success' && /^\d+$/.test(r.result)) map.set(t.label, BigInt(r.result));
+    });
+    return map;
+  }, [q.data, readable, targets]);
+  return { fundedUntil, isLoading: contracts.length > 0 && q.isLoading };
+}

@@ -18,7 +18,7 @@ import {SepoliaConfig as C} from "./Config.s.sol";
 ///     --private-key $DEPLOYER_PRIVATE_KEY --broadcast [--verify]
 contract Deploy is Script {
     uint16 internal constant MOCK_RATE_BPS = 400;
-    uint256 internal constant DEPOSIT_CAP = 100e6;
+    uint256 internal constant DEPOSIT_CAP = 200e6;
     uint256 internal constant RESERVE_YEARS = 2;
 
     function run() external {
