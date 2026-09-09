@@ -62,6 +62,16 @@ export function basePrice(label: string, duration: bigint): bigint {
   return applyDiscount(rate * duration, duration);
 }
 
+/** Renewal price for a tier rather than a label, in token units; what a tier's names all pay. */
+export function tierRenewPrice(
+  tier: Tier,
+  duration: bigint,
+  ratio: PaymentRatio = USDC_RATIO,
+): bigint {
+  const rate = BASE_RATE_PER_SECOND[tier - 1] ?? 0n;
+  return toAmount(applyDiscount(rate * duration, duration), ratio);
+}
+
 /** Ceil-rounded conversion from base units to token units, as the oracle's `_toAmount`. */
 export function toAmount(value: bigint, ratio: PaymentRatio = USDC_RATIO): bigint {
   if (ratio.numer === ratio.denom) return value;

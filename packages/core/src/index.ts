@@ -26,6 +26,7 @@ export {
   labelLength,
   renewPrice,
   tierOf,
+  tierRenewPrice,
   toAmount,
   type DiscountPoint,
   type PaymentRatio,

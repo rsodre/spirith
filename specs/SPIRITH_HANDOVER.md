@@ -291,6 +291,16 @@ The naive strategy — renew one year at a time — is the *worst* option. Renew
 
 Keep an on-chain heuristic in the contract (longest affordable duration above a reserve threshold) and let the agent do the sophisticated version off-chain. The contract must never depend on the agent.
 
+As built (`packages/agent`): each tool is a plain function over the subgraph client and a
+`ChainReader` (vault `runwayOf` and constants, adapter `rateRangeBps`), returning structured data
+plus a one-paragraph summary; `mcp.ts` maps them onto stdio. `optimalCadence` simulates 1/2/3/6-year
+blocks with `runwayYears` including the non-earning reserve and recommends the longest runway at
+the low rate, ties to the longer block; it also reports what the vault's own heuristic will buy,
+since `renew()` only accepts that duration. The recommendation therefore guides *how much to
+endow*, never what the keeper sends. `rescueProposal` proposes the shortfall to perpetuity via
+`perpetualDeposit` (bisection) or the cap, whichever is smaller, and returns the exact
+`approve` + `endow` arguments.
+
 ---
 
 ## 7. The `referrer` parameter — business model, contingent
@@ -317,7 +327,13 @@ The naive `$4.50 / 4% = $112.50` ignores that and is not enough. Renewing yearly
 4%, which is why cadence (§6) is worth optimising. Thresholds are pinned in
 `packages/core/test/runway.test.ts`; the on-chain prices they use are pinned in `pricing.test.ts`.
 
-**Headline: ~$110–130, once, makes a normal `.eth` name immortal at 4–5% yield.**
+With the reserve as built (`RESERVE_YEARS = 2`, ~16 USDC that never earns), the same thresholds
+are **~$122 at 5% and ~$145 at 4%** for six-year blocks, and ~$184 / ~$224 yearly; pinned in
+`packages/agent/test/optimiser.test.ts`. The reserve costs exactly its size times the rate each
+year, the price of never depending on the yield venue on renewal day.
+
+**Headline: ~$110–130, once, makes a normal `.eth` name immortal at 4–5% yield** (≈$120–145 with
+the two-year liquid reserve).
 
 That number is small enough that it stops sounding like a financial product and starts sounding like a rounding error — which is the emotional point of the entire pitch.
 

@@ -9,11 +9,14 @@ catalog:
   '@biomejs/biome': 2.5.12
   '@graphprotocol/graph-cli': 0.98.1
   '@graphprotocol/graph-ts': 0.38.2
+  '@modelcontextprotocol/sdk': 1.30.0
   '@types/node': 26.4.1
   tsdown: 0.23.0
+  tsx: 4.23.13
   typescript: 5.9.3
   viem: 2.56.3
   vitest: 5.0.0
+  zod: 4.5.4
 
 # Every dependency with an install script gets an explicit answer.
 onlyBuiltDependencies:

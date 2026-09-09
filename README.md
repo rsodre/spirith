@@ -31,8 +31,9 @@ The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMA
 
 ## Status
 
-Phase 4 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
-wallet, and the subgraph indexes the whole Sepolia namespace. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
+Phase 5 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
+wallet, the subgraph indexes the whole Sepolia namespace, and an MCP server answers questions
+about it. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
 
 | Contract | Address |
 |---|---|
@@ -50,7 +51,12 @@ every `.eth` name on Sepolia and every Spirith endowment; the dashboard and the 
 It is live on Subgraph Studio as
 [`spirith-sepolia`](https://thegraph.com/studio/subgraph/spirith-sepolia).
 
-Nothing is audited. The agent's tools and the dashboard are not built yet.
+The agent (`packages/agent`) is an MCP server with five tools over that subgraph: names at
+risk, a name's runway, the optimal renewal cadence against ENSv2's duration discounts, a
+patron's portfolio health, and a rescue proposal with the exact deposit to make. A keeper CLI
+in the same package renews any endowed name the vault allows and collects the tip.
+
+Nothing is audited. The dashboard is not built yet.
 
 ## AI usage
 
@@ -81,6 +87,7 @@ cp .env.example .env        # fill in SEPOLIA_RPC_URL and, for scripts, DEPLOYER
 pnpm check                  # lint, typecheck, unit tests (TypeScript and Solidity)
 pnpm test:fork:sepolia      # ENSv2 interfaces and the full demo path against live Sepolia
 pnpm test:fork:mainnet      # real yield from Aave on a mainnet fork (needs MAINNET_RPC_URL)
+pnpm --filter @spirith/agent keeper once --label <name> --dry-run   # what a keeper would do
 ```
 
 Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is
@@ -112,6 +119,20 @@ https://thegraph.com/studio and put its deploy key in `.env`):
 pnpm --filter @spirith/subgraph deploy:studio
 ```
 
+Ask the agent (Claude Code reads `.mcp.json` in this repository; for Claude Desktop see
+`packages/agent/README.md`):
+
+```sh
+claude    # then: which endowed names die in the next 30 days and what should each renew for?
+```
+
+Run the keeper (simulates without `KEEPER_PRIVATE_KEY`):
+
+```sh
+pnpm --filter @spirith/agent keeper once --label spirithbeta --dry-run
+pnpm --filter @spirith/agent keeper watch --interval 300
+```
+
 ## Repository
 
 - `contracts/` — Foundry: `SpirithVault`, yield adapters, vendored ENSv2 interfaces, unit,
@@ -119,6 +140,7 @@ pnpm --filter @spirith/subgraph deploy:studio
 - `packages/core` — shared TypeScript: chain config, ENSv2 and Spirith addresses and ABIs,
   pricing, runway and liveness math, the subgraph query client
 - `packages/subgraph` — The Graph subgraph: schema, manifest template and mappings
+- `packages/agent` — the keeper CLI, the cadence optimiser and the Spirith MCP server
 - `specs/` — the project handover and the build plan
 - `CLAUDE.md`, `AGENTS.md` — guidance for coding agents
 

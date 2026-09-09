@@ -5,6 +5,7 @@ import {
   effectiveYearlyCost,
   renewPrice,
   tierOf,
+  tierRenewPrice,
 } from '../src/ens/pricing.js';
 
 const DAY = 86_400n;
@@ -62,5 +63,15 @@ describe('tierOf', () => {
     expect(tierOf('abcdefgh')).toBe(5);
     expect(tierOf('🦄🦄🦄')).toBe(3);
     expect(() => tierOf('ab')).toThrow();
+  });
+});
+
+describe('tierRenewPrice', () => {
+  it('matches renewPrice for a label of that tier', () => {
+    expect(tierRenewPrice(5, 6n * SECONDS_PER_YEAR)).toBe(
+      renewPrice('vitalik', 6n * SECONDS_PER_YEAR),
+    );
+    expect(tierRenewPrice(3, SECONDS_PER_YEAR)).toBe(640_000_005n);
+    expect(tierRenewPrice(4, SECONDS_PER_YEAR)).toBe(160_000_009n);
   });
 });

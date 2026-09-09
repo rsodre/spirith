@@ -1,0 +1,41 @@
+{
+  "name": "@spirith/agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spirith agent: keeper CLI, cadence optimiser and the Spirith MCP server over the subgraph.",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "spirith-keeper": "./dist/keeper.js",
+    "spirith-mcp": "./dist/mcp.js"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "keeper": "tsx src/keeper.ts",
+    "mcp": "tsx src/mcp.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@spirith/core": "workspace:*",
+    "viem": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsdown": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -46,16 +46,16 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-Phases 0–4 landed (2026-09-08); `specs/SPIRITH_PLAN.md`
+Phases 0–5 landed (2026-09-08); `specs/SPIRITH_PLAN.md`
 has the per-phase record. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
 architecture, decisions and deadline; the plan holds the phases, gates and project structure.
 Read both in full before building anything. When this file and a spec disagree, the spec wins;
 update this file.
 
 Layout: pnpm workspace with `contracts/` (Foundry), `packages/core` (chain config, address+ABI
-registry, pricing, runway and liveness math, subgraph query client) and `packages/subgraph`
-(The Graph mappings, live on Subgraph Studio as `spirith-sepolia`) in place; `packages/agent` (MCP
-server, optimiser, keeper CLI) and `apps/web` (Next.js) arrive in later phases. Node 23, pnpm 10
+registry, pricing, runway and liveness math, subgraph query client) `packages/subgraph`
+(The Graph mappings, live on Subgraph Studio as `spirith-sepolia`) and `packages/agent` (keeper
+CLI, cadence optimiser, MCP server) in place; `apps/web` (Next.js) arrives in Phase 6. Node 23, pnpm 10
 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, which must be on `PATH` or
 every contracts script fails with "command not found".
 
@@ -66,6 +66,7 @@ every contracts script fails with "command not found".
 | `pnpm check` | the gate: Biome + `forge fmt --check`, `tsc --noEmit`, vitest, `forge test` |
 | `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
 | `pnpm test:fork:mainnet` | ERC-4626 adapter over Aave on a mainnet fork (`MAINNET_RPC_URL` in `.env`) |
+| `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one keeper attempt; simulates without `KEEPER_PRIVATE_KEY` |
 | `pnpm --filter @spirith/core test` | pricing and runway pins only |
 | `forge test --match-test <name>` (in `contracts/`) | one Solidity test |
 | `forge script script/ProveRenew.s.sol ...` | renew a name straight on the registrar from a non-owner (Phase 0 proof) |
@@ -74,11 +75,18 @@ every contracts script fails with "command not found".
 | `pnpm --filter @spirith/core gen:abis` | refresh Spirith ABIs from `contracts/out` and regenerate `src/generated/` |
 | `pnpm --filter @spirith/subgraph build` | render manifest + ABIs from core, `graph codegen`, `graph build` (also runs in `pnpm check`) |
 | `pnpm --filter @spirith/subgraph deploy:studio` | build, then deploy `spirith-sepolia` to Subgraph Studio (`GRAPH_DEPLOY_KEY` in `.env`) |
+| `pnpm --filter @spirith/agent test` | optimiser pins and tool tests over fakes |
+| `pnpm --filter @spirith/agent mcp` | the MCP server on stdio (what `.mcp.json` runs; loads `.env` itself) |
+| `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one renewal attempt from `KEEPER_PRIVATE_KEY` |
+| `pnpm --filter @spirith/agent keeper watch [--interval s] [--polls n] [--dry-run]` | poll the subgraph, renew every endowed name the vault allows |
 
 Vendored ENSv2 interfaces live in `contracts/src/interfaces/ens/`; `test/Interfaces.t.sol`
 pins their selectors. In `packages/subgraph`, `subgraph.yaml`, `abis/` and `src/config.ts` are
 rendered by `scripts/prepare.mjs` from core and git-ignored; edit `subgraph.template.yaml`. The
 mappings are AssemblyScript: `==` for strings, `BigInt` from graph-ts, no closures over locals.
+In `packages/agent`, tools are plain functions over `ToolContext` (subgraph config + `ChainReader`);
+`mcp.ts` only maps them, so tests use fakes and never the protocol. The MCP server must write
+nothing to stdout except protocol; log to stderr.
 Sepolia addresses live in exactly two mirrored places, `contracts/script/Config.s.sol` and
 `packages/core/src/ens/addresses.ts`; change both or neither.
 

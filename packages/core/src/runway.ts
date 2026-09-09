@@ -11,6 +11,8 @@ export interface RunwayInput {
   readonly blockYears: number;
   /** Annual yield in basis points. */
   readonly rateBps: number;
+  /** Assets kept liquid and earning nothing (the vault's reserve buffer). Default 0. */
+  readonly reserve?: bigint;
 }
 
 /**
@@ -21,6 +23,7 @@ export function runwayYears(input: RunwayInput): number {
   const { blockCost, blockYears } = input;
   if (blockCost <= 0n || blockYears <= 0) throw new Error('invalid renewal block');
   const rate = BigInt(input.rateBps);
+  const reserve = input.reserve ?? 0n;
   let assets = input.assets;
   let coveredUntil = 0;
   for (let year = 0; year < RUNWAY_HORIZON_YEARS; year++) {
@@ -29,7 +32,8 @@ export function runwayYears(input: RunwayInput): number {
       assets -= blockCost;
       coveredUntil = year + blockYears;
     }
-    assets += (assets * rate) / 10_000n;
+    const earning = assets > reserve ? assets - reserve : 0n;
+    assets += (earning * rate) / 10_000n;
   }
   return RUNWAY_HORIZON_YEARS;
 }

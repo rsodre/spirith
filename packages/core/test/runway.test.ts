@@ -63,3 +63,11 @@ describe('runwayRange', () => {
     expect(r.perpetual).toBe(false);
   });
 });
+
+describe('runwayYears with a reserve', () => {
+  it('earns nothing on the reserve, so the same deposit lasts less', () => {
+    const base = { assets: 129_000_000n, blockCost: SIX_YEAR_BLOCK, blockYears: 6, rateBps: 400 };
+    expect(runwayYears(base)).toBe(RUNWAY_HORIZON_YEARS);
+    expect(runwayYears({ ...base, reserve: 16_000_042n })).toBeLessThan(RUNWAY_HORIZON_YEARS);
+  });
+});

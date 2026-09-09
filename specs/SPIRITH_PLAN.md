@@ -186,8 +186,9 @@ fork at block 25,927,844 (`MAINNET_RPC_URL` in `.env`, the public node): 50 USDC
 endowed, 16.000042 kept liquid, 33.999958 deposited in Aave; after a one-year warp the earmark
 read 51.224465 USDC, i.e. **1.224466 USDC of real interest, 3.60% on the deployed part**; the
 keeper then bought the six-year block for 27.000071 USDC from the earmark. A second test
-withdraws principal plus a month of yield and leaves nothing in the adapter. The keeper CLI
-planned here moved to Phase 5, next to the subgraph client it will use.
+withdraws principal plus a month of yield and leaves nothing in the adapter. `packages/agent`
+exists with `spirith-keeper once --label <l> [--dry-run]` (reads the vault, simulates, sends
+with `KEEPER_PRIVATE_KEY`); dry runs against Sepolia report `spirithbeta` not due until 2032.
 
 ### Phase 4 ✅ — Subgraph
 
@@ -219,14 +220,32 @@ the same day: the endpoint reached chain head (block 11664733) with no indexing 
 50 USDC contributed, 27.270071 spent, 1 patron, `recordWritten: true`, and `renewalEvents` the
 keeper's six-year renewal with the vault as referrer.
 
-### Phase 5 — Agent: MCP server + optimiser
+### Phase 5 ✅ — Agent: MCP server + optimiser
 
 - `packages/agent/src/optimiser/`: pure functions. `optimalCadence({assets, rateLowBps, rateHighBps, tier, expiry, discountPoints, reserveYears})` simulates renew-1y-forever versus 2/3/6-year blocks over a horizon and returns the strategy with the longest runway at the low rate, with a one-paragraph explanation string. Vitest with the on-chain discount points.
 - MCP server (`@modelcontextprotocol/sdk`, stdio): `namesAtRisk(days)`, `runway(name)`, `optimalCadence(name)`, `portfolioHealth(address)`, `rescueProposal(name)`. Each tool queries the subgraph through `core`, runs the optimiser, and returns structured JSON plus a sentence a human can read.
-- `.mcp.json` example for Claude Code and Claude Desktop in the package README; a recorded transcript of three questions goes in the submission.
+- `.mcp.json` example for Claude Code and Claude Desktop in the package README.
 - Keeper CLI in the same package: `spirith-keeper once --label x` reads the vault, simulates and sends `renew`; `watch` polls `namesAtRisk` and renews when the vault's trigger holds.
 
 **Gate:** From a fresh Claude Code session with the server configured, "which endowed names die in the next 30 days and what should each renew for?" returns live Sepolia data with cadences; `pnpm --filter @spirith/agent test` green.
+
+Landed 2026-09-08 on top of the `agent_preflight` keeper. `packages/agent`: `optimiser/cadence.ts`
+(`optimalCadence`, `perpetualDeposit`; pure, 7 pins), `chain.ts` (one `ChainReader` interface,
+viem implementation, fakes in tests), `tools/` (the five tools as plain functions returning
+`{data, summary}`), `mcp.ts` (stdio, `@modelcontextprotocol/sdk` 1.30 + zod 4, tools mapped
+one-to-one), `keeper watch [--polls n]` over `fetchNamesAtRisk(endowedOnly)`. `@spirith/core`
+gained `tierRenewPrice` and a `reserve` term in `runwayYears` (the vault's liquid buffer earns
+nothing). Repo `.mcp.json` launches the server through `pnpm --silent`; the package README has
+the Claude Desktop form. Observed 2026-09-08 through an MCP stdio client against the live server:
+`namesAtRisk(30)` → 90 names, 26 in grace, 4,768 USDC of yearly renewals unfunded;
+`runway(spirithbeta)` → 22.73 USDC, funded until 2035-10-02 at 4%; `optimalCadence` → 3-year
+block, agreeing with the vault; `rescueProposal(spirithalpha)` → endow 100 USDC (perpetuity
+needs 144.76, above the cap), 30 years in 6-year blocks. Tests: 15 in `@spirith/agent`.
+Gate observed 2026-09-08 22:45: a fresh Claude Code session in this repo, with no setup beyond
+`.mcp.json`, answered the gate question in 51 s from three tool calls: no endowed name expires
+within 30 days; spirithbeta.eth is endowed with 22.73 USDC, runway at least 9 years, and should
+renew for 3 years when due, with the four blocks compared. The session also pointed out that no
+endowed name reaches the lead window before the deadline; see the risk table.
 
 ### Phase 6 — Dashboard
 
@@ -245,6 +264,7 @@ Pages, each a folder under `components/pages/`:
 
 - README per `CLAUDE.md` README rule and HANDOVER §15: custody posture first, problem statement verbatim, the 28-day grace cut, prior art, limitations, setup and run, the fork-test yield number, the renewal tx from a non-owner.
 - Video 2–4 min, 720p+, real narration: scoreboard → endow → record appears → non-owner renews → graveyard → agent answering one question.
+- A recorded transcript of three questions to the MCP server (the gate question of Phase 5 is one) goes in the submission.
 - ETHGlobal dashboard: title, description, repo, video, two sponsor tracks (ENS Track 1, The Graph Track 2). Third slot stays empty unless HANDOVER §9.2's test is passed.
 - Rehearse three times, record, submit by 10:00 EDT: two hours of margin before the hard cut-off.
 
@@ -276,7 +296,7 @@ Pages, each a folder under `components/pages/`:
 | Risk | Fallback |
 |---|---|
 | Sepolia RPC flaky on demo day | Pre-recorded video is the submission; live demo is a bonus. Keep an Alchemy and a public RPC in `.env`. |
-| Test names do not reach the lead window before the video | The heuristic path lets `renew()` run early when the duration matches `optimalDuration`; endow enough for a 2-year block and demo that. |
+| Test names do not reach the lead window before the video | There is no early-renew path (HANDOVER §4.1). Register a fresh name for the 28-day minimum with `RegisterName.s.sol`: it is inside the 30-day lead from day one, so endow → renew runs the same day, as spirithbeta did in Phase 2. spirithbeta now expires in 2032. |
 | Subgraph Studio indexing lag | Dashboard reads on-chain for the name card (wagmi), subgraph only for lists; the agent tolerates `_meta.block` lag and says so. |
 | Record write reverts for a name registered with `PublicResolverV2` | Expected and handled: best-effort write, "record: not supported by this resolver" in the UI. Demo with a name on a PermissionedResolver (manager.ens.dev default). |
 | Time | Cut in HANDOVER §9.4 order. Multi-patron falls back to single patron per name by removing the inner mapping, not by rewriting. |

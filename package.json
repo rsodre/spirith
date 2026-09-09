@@ -8,7 +8,7 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "build": "pnpm --filter @spirith/core build",
+    "build": "pnpm --filter @spirith/core build && pnpm --filter @spirith/agent build",
     "lint": "biome check . && pnpm --filter @spirith/contracts lint",
     "format": "biome format --write . && pnpm --filter @spirith/contracts format",
     "check-types": "pnpm -r --if-present check-types",
