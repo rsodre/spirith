@@ -1,13 +1,14 @@
 'use client';
 
 import { type FormEvent, useCallback, useMemo, useState } from 'react';
-import type { SubgraphEndowment } from '@spirith/core';
+import { type SubgraphEndowment, tierOf } from '@spirith/core';
 import { AddressLink } from '@/components/AddressLink';
 import { Button, Field, Panel, Spinner } from '@/components/ui';
 import { useEndowFlow } from '@/hooks/chain/use-endow-flow';
 import type { VaultConstants, VaultRunway } from '@/hooks/chain/use-vault';
 import type { Wallet } from '@/hooks/chain/use-wallet';
 import { formatDuration, formatRate, formatUsdc, fundedRange, parseUsdc } from '@/lib/format';
+import { projectFunding } from '@/lib/projection';
 
 interface Props {
   label: string;
@@ -94,23 +95,37 @@ export function EndowmentPanel({
           </dl>
         </div>
       )}
-      <EndowForm label={label} room={room} renewable={renewable} wallet={wallet} />
+      <EndowForm
+        label={label}
+        room={room}
+        renewable={renewable}
+        wallet={wallet}
+        assets={runway?.assets}
+        expiry={expiry}
+        constants={constants}
+      />
     </Panel>
   );
 }
 
-const SUGGESTED = ['10', '25', '50'] as const;
+const SUGGESTED = ['25', '50', '100', '150'] as const;
 
 function EndowForm({
   label,
   room,
   renewable,
   wallet,
+  assets,
+  expiry,
+  constants,
 }: {
   label: string;
   room: bigint | undefined;
   renewable: boolean | undefined;
   wallet: Wallet;
+  assets: bigint | undefined;
+  expiry: bigint | undefined;
+  constants: VaultConstants | undefined;
 }) {
   const [text, setText] = useState('25');
   const [error, setError] = useState<string | undefined>();
@@ -140,6 +155,23 @@ function EndowForm({
     [wallet, text, room, endow],
   );
 
+  // What the earmark would cover after this deposit, recomputed as the amount is typed.
+  const projection = useMemo(() => {
+    if (assets === undefined || expiry === undefined || constants === undefined) return undefined;
+    let amount: bigint;
+    try {
+      amount = parseUsdc(text);
+    } catch {
+      return undefined;
+    }
+    if (amount <= 0n) return undefined;
+    try {
+      return projectFunding({ assets: assets + amount, tier: tierOf(label), expiry, constants });
+    } catch {
+      return undefined;
+    }
+  }, [assets, expiry, constants, text, label]);
+
   const disabled = renewable !== true || (room !== undefined && room <= 0n);
   const hint =
     renewable === undefined
@@ -147,10 +179,10 @@ function EndowForm({
       : !renewable
         ? 'This name cannot be renewed, so it cannot be endowed.'
         : room === undefined
-          ? 'Test USDC is minted for you if you are short.'
+          ? '100 test USDC are minted for you if you are short.'
           : room <= 0n
             ? 'This name is at the testnet cap.'
-            : `Room under the cap: ${formatUsdc(room)} USDC. Test USDC is minted for you if you are short.`;
+            : `Room under the cap: ${formatUsdc(room)} USDC. 100 test USDC are minted for you if you are short.`;
 
   return (
     <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3 border-line border-t pt-5">
@@ -173,7 +205,7 @@ function EndowForm({
             onClick={() => setText(s)}
             disabled={disabled || endow.isPending}
           >
-            {s}
+            ${s}
           </Button>
         ))}
         <Button
@@ -186,6 +218,16 @@ function EndowForm({
           {wallet.isConnected ? 'Endow' : 'Connect to endow'}
         </Button>
       </div>
+      <p className="min-h-6 font-title text-lg">
+        {projection ? (
+          <>
+            After this deposit, <span className="text-verdigris">funded {projection.text}</span>
+            {constants ? ` at ${formatRate(constants.rateLowBps, constants.rateHighBps)}` : ''}.
+          </>
+        ) : assets !== undefined && constants !== undefined && text.trim() !== '' ? (
+          <span className="text-muted">Still short of one year of renewal.</span>
+        ) : null}
+      </p>
       {wallet.wrongChain ? (
         <p className="text-sm text-oxide">Your wallet is on another network; switch to Sepolia.</p>
       ) : null}

@@ -97,7 +97,8 @@ the boundary as bigint-tagged JSON (`lib/json.ts`); chain reads and writes go th
 in `hooks/chain/`, never through a route. Every write hook is built on `useChainMutation`
 (simulate → send → receipt → indexing wait, one toast per call). Addresses and ABIs come from
 core's registry via `hooks/chain/contracts.ts`; no literal anywhere else. `/bench` is the
-unlinked contract bench. Next's own `AGENTS.md`/`CLAUDE.md` generation is off (`agentRules`).
+unlinked contract bench. `/roadmap` renders `specs/SPIRITH_ROADMAP.md` at build time; edit the
+spec, never the page. Next's own `AGENTS.md`/`CLAUDE.md` generation is off (`agentRules`).
 Sepolia addresses live in exactly two mirrored places, `contracts/script/Config.s.sol` and
 `packages/core/src/ens/addresses.ts`; change both or neither.
 

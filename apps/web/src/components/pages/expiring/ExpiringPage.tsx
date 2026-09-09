@@ -22,9 +22,9 @@ const WINDOW_DAYS = 28;
 const EMPTY_NAMES: readonly SubgraphName[] = [];
 const ONE_YEAR = SECONDS_PER_YEAR;
 
-// The scoreboard: one sentence with the live count, then the register of names at risk,
-// worst first. Bands are computed here at read time, never stored.
-export function ScoreboardPage() {
+// The register of names at risk, worst first, with the value at risk by tier and the
+// namespace totals beside it. Bands are computed here at read time, never stored.
+export function ExpiringPage() {
   const now = useNow();
   const atRisk = useNamesAtRisk(WINDOW_DAYS);
   const namespace = useNamespace();
@@ -86,18 +86,7 @@ export function ScoreboardPage() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <section className="mb-12 max-w-3xl">
-        <h1 className="text-5xl md:text-6xl">
-          {atRisk.isLoading ? (
-            <span className="motion-safe:animate-pulse-soft text-muted">Counting the names…</span>
-          ) : atRisk.error ? (
-            <span>The index is unreachable.</span>
-          ) : (
-            <>
-              <span className="text-oxide">{rows.length}</span>{' '}
-              {rows.length === 1 ? 'name dies' : 'names die'} this month.
-            </>
-          )}
-        </h1>
+        <h1>Expiring within {WINDOW_DAYS} days</h1>
         <p className="mt-5 font-title text-xl leading-relaxed text-muted">
           {atRisk.error ? (
             atRisk.error.message

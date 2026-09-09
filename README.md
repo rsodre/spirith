@@ -56,12 +56,14 @@ risk, a name's runway, the optimal renewal cadence against ENSv2's duration disc
 patron's portfolio health, and a rescue proposal with the exact deposit to make. A keeper CLI
 in the same package renews any endowed name the vault allows and collects the tip.
 
-The dashboard (`apps/web`) is a Next.js app over the subgraph and the chain: a scoreboard of
-the names dying this month with the value at risk by price tier, a card per name with its
-funded-until range, the endow flow (test USDC is minted for you), a "renew now" button anyone
-can press once the name is inside its 30-day lead window, the owner's one-time step that lets
-the vault publish the funding record, and the graveyard of lapsed names. It needs a browser
-wallet on Sepolia; nothing else.
+The dashboard (`apps/web`) is a Next.js app over the subgraph and the chain. The front page
+counts the names dying this month; behind it are the register of expiring names with the value
+at risk by price tier, the endowed names with their funded-until ranges, the graveyard, an
+about page and the roadmap. Each name has a card with the endow flow (100 test USDC are minted for a
+wallet that is short), a "renew now" button anyone can press once the name is
+inside its 30-day lead window, and the owner's one-time step that lets the vault publish the
+funding record. It needs a browser wallet on Sepolia; nothing else. Endowments on Sepolia are
+in ENS's MockUSDC, the token the beta registrar accepts.
 
 Nothing is audited.
 

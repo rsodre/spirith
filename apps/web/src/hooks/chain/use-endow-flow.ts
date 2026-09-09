@@ -9,6 +9,9 @@ export interface EndowArgs {
   readonly amount: bigint;
 }
 
+/** What a short wallet is minted on Sepolia: one capped endowment's worth. */
+export const TOPUP_USDC = 100_000_000n;
+
 // Mint test USDC if short → approve if short → endow → wait for the subgraph. Balance and
 // allowance are read fresh here, never from the cached hooks: a stale allowance approves the
 // wrong amount.
@@ -21,10 +24,11 @@ export function useEndowFlow(label: string) {
       args: [tx.account],
     });
     if (balance < amount) {
+      const shortfall = amount - balance;
       await tx.send('MockUSDC::mint()', {
         ...USDC,
         functionName: 'mint',
-        args: [tx.account, amount - balance],
+        args: [tx.account, shortfall > TOPUP_USDC ? shortfall : TOPUP_USDC],
       });
     }
     const allowance = await readContract(wagmiConfig, {

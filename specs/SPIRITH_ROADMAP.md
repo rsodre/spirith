@@ -107,6 +107,15 @@ therefore unusually easy to freeze (→ HANDOVER §11.6).
   with venue, rate range and risk notes, and lets a patron simulate the funded-until range under
   each before choosing; the agent's `optimalCadence` takes the adapter as an input.
 - **Liquidity-aware renewal fallback.** If the yield venue cannot pay out on renewal day, renew for the longest block the liquid reserve covers instead of failing (→ HANDOVER §4.1, known gap). A `refreshRecord(label)` that rewrites `spirith.funded-until` without a money movement belongs with it.
+- **The six-year price for endowed names, paid yearly (ENS partnership).** ENSv2 gives 43.75%
+  off for paying six years upfront because the capital is committed; an endowed name commits
+  it just as durably, on-chain and verifiably (the earmark, the 30-day withdrawal notice, the
+  `spirith.funded-until` record). Proposal to ENS: a rent price oracle that charges the
+  six-year rate on one-year renewals when the payer is a vault whose earmark covers at least
+  six years. The endowment then keeps its whole balance earning while paying the discounted
+  price, which removes the cadence trade-off (→ HANDOVER §6) and lowers the perpetuity
+  threshold for a normal name from ~$129 to ~$112 at 4%. The registrar's oracle is already a
+  replaceable component (`setRentPriceOracle`), so this is a policy change, not a protocol one.
 - **Real yield on mainnet.** `ERC4626Adapter` over Aave's USDC token, already proven on a
   mainnet fork in Phase 1; mainnet deployment waits for ENSv2 mainnet.
 - **Aave Stable Vaults** once their accounting chain reaches Ethereum: a contractually fixed
@@ -121,7 +130,7 @@ HANDOVER §9.2; this list is for the company.
 
 | Partner | Program | Why Spirith fits |
 |---|---|---|
-| **ENS** | Ecosystem Working Group grants for ENS-centric builders; the Service Provider Program (SPP3 committee seated May 2026, ~$3.25M budget; future seasons run by the ENS Foundation) | Namespace liveness and renewal infrastructure is a service to the whole namespace. SPP is the long game, a grant the first step. |
+| **ENS** | Ecosystem Working Group grants for ENS-centric builders; the Service Provider Program (SPP3 committee seated May 2026, ~$3.25M budget; future seasons run by the ENS Foundation) | Namespace liveness and renewal infrastructure is a service to the whole namespace. SPP is the long game, a grant the first step; the six-year price for endowed names (above) is the first concrete ask. |
 | **NameHash Labs** | ENS referral program, off-chain payments to mainnet referrers | Every renewal already carries Spirith as referrer (→ HANDOVER §7). Revenue, not a grant. |
 | **Filecoin Foundation** | Grants up to $50k for novel ideas, $5k–$10k next-level grants; Filecoin Onchain Cloud on mainnet in 2026 | Phase 2 generates paid on-chain storage deals, which is the Foundation's stated 2026 KPI. |
 | **Ethereum Foundation** | Ecosystem Support Program, rolling: small grants to $30k, project grants $10k–$500k | The fallback registry and the liveness oracle are public goods with no token and no treasury. |

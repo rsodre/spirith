@@ -13,7 +13,7 @@ import { useName } from '@/hooks/queries/use-name';
 import { useNow } from '@/hooks/use-now';
 import { useSlugs } from '@/hooks/use-slugs';
 import { ensExplorerName } from '@/lib/chain';
-import { formatDate, formatDays, yearsUntil } from '@/lib/format';
+import { formatDate, formatDays, fundedRange, yearsUntil } from '@/lib/format';
 import { EndowmentPanel } from './EndowmentPanel';
 import { NameFacts } from './NameFacts';
 import { OwnerPanel } from './OwnerPanel';
@@ -50,6 +50,15 @@ export function NamePage() {
     });
   }, [registered, expiry, now, endowed, runway]);
 
+  // Honest UI rule (spec §4.4): a range, collapsing to one date when the rate range does.
+  const funded = useMemo(
+    () =>
+      registered && runway && endowed && runway.fundedUntilLow > expiry
+        ? fundedRange(runway.fundedUntilLow, runway.fundedUntilHigh, expiry)
+        : undefined,
+    [registered, runway, endowed, expiry],
+  );
+
   const isOwner = owner !== undefined && wallet.address !== undefined && owner === wallet.address;
 
   return (
@@ -72,11 +81,13 @@ export function NamePage() {
             <>
               {live ? <BandMark band={live.band} className="text-xl" /> : null}
               <span>
-                {expiry > now
-                  ? `expires ${formatDate(expiry)}, in ${formatDays(Number((expiry - now) / 86_400n))}`
-                  : expiry + GRACE_PERIOD_SECONDS > now
-                    ? `expired ${formatDate(expiry)}; renewable for ${formatDays(Number((expiry + GRACE_PERIOD_SECONDS - now) / 86_400n))} more`
-                    : `lapsed on ${formatDate(expiry + GRACE_PERIOD_SECONDS)}`}
+                {funded
+                  ? `funded ${funded.perpetual ? 'indefinitely at current rates' : `until ${formatDate(funded.low)}${funded.high > funded.low ? ` to ${formatDate(funded.high)}` : ''}`}`
+                  : expiry > now
+                    ? `expires ${formatDate(expiry)}, in ${formatDays(Number((expiry - now) / 86_400n))}`
+                    : expiry + GRACE_PERIOD_SECONDS > now
+                      ? `expired ${formatDate(expiry)}; renewable for ${formatDays(Number((expiry + GRACE_PERIOD_SECONDS - now) / 86_400n))} more`
+                      : `lapsed on ${formatDate(expiry + GRACE_PERIOD_SECONDS)}`}
               </span>
               <ExternalLink href={ensExplorerName(label)} className="text-base text-muted">
                 explorer.ens.dev
@@ -107,6 +118,15 @@ export function NamePage() {
             />
           ) : null}
           <RenewalHistory renewals={name?.renewalEvents ?? EMPTY} isLoading={detail.isLoading} />
+          <RenewPanel
+            label={label}
+            now={now}
+            expiry={registered ? expiry : undefined}
+            runway={runway}
+            constants={constants}
+            renewable={isRenewable}
+            wallet={wallet}
+          />
         </div>
         <div className="flex flex-col gap-10">
           <EndowmentPanel
@@ -115,15 +135,6 @@ export function NamePage() {
             runway={runway}
             constants={constants}
             endowment={name?.endowmentDetail ?? null}
-            renewable={isRenewable}
-            wallet={wallet}
-          />
-          <RenewPanel
-            label={label}
-            now={now}
-            expiry={registered ? expiry : undefined}
-            runway={runway}
-            constants={constants}
             renewable={isRenewable}
             wallet={wallet}
           />

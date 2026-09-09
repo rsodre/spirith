@@ -253,7 +253,9 @@ endowed name reaches the lead window before the deadline; see the risk table.
 
 Pages, each a folder under `components/pages/`:
 
-- `/` scoreboard: namespace totals, expiring-soon list with risk bands, endowed-vs-not ratio, value at risk by tier.
+- `/` home: the live count of names dying this month, the problem statement verbatim, and a door to every other page (restructured 2026-09-09; the register moved to `/expiring`).
+- `/expiring`: namespace totals, expiring-soon list with risk bands, endowed-vs-not ratio, value at risk by tier.
+- `/endowed`: every live endowment with its earmark and funded-until range; `/about`: custody posture, mechanism, cost, limitations, prior art; `/roadmap`: `specs/SPIRITH_ROADMAP.md` rendered as is.
 - `/name/[label]` card: expiry, tier, endowment assets, funded-until **range**, patrons, record status; endow flow (mint test USDC → approve → endow; optional owner step: authorise record keys); "renew now" button for anyone when the trigger holds, showing the tip.
 - `/graveyard`: lapsed names.
 - `/bench`: unlinked contract bench page per `web3-chain-layer`.
@@ -262,15 +264,22 @@ Pages, each a folder under `components/pages/`:
 
 **Gate:** The 90-second demo script (→ HANDOVER §9.5) runs end to end on Sepolia from a clean browser profile against `pnpm dev`, twice.
 
-Landed 2026-09-09. `apps/web` (`@spirith/web`): pages `/` (scoreboard: the count of names
-expiring within 28 days as the headline, the register worst-first with read-time bands, unfunded
-yearly renewals by tier, namespace totals), `/name/[label]` (facts from the chain, the funding
+Landed 2026-09-09. `apps/web` (`@spirith/web`): pages `/` (the count of names expiring within
+28 days as the headline, the problem statement, doors to every register), `/expiring` (the
+register worst-first with read-time bands, unfunded yearly renewals by tier, namespace totals),
+`/endowed` (live endowments, one multicall for the runways), `/about`, `/roadmap` (the spec
+file read at build time, handover cross-references stripped, rendered with react-markdown),
+`/name/[label]` (facts from the chain, the funding
 record read from the resolver, endowment with the funded-until range from `runwayOf`, endow
 form with mint → approve → endow, renew panel gated on the vault's own trigger and showing price
 and tip, owner panel running the `PrepareName` flow from the browser, patron panel with notice
 and withdrawal, renewal history), `/graveyard` (lapsed names plus the in-grace list), `/bench`
-(unlinked). Chain layer: `hooks/chain/contracts.ts` over core's registry, one hook per
-entrypoint, `useChainMutation` (simulate → send → receipt → subgraph `_meta.block` wait, one
+(unlinked). The header shows the wallet's primary ENS name when it has one (wagmi's
+`useEnsName`; viem's Sepolia default is already the ENSv2 beta universal resolver) and its
+MockUSDC balance and network, since ConnectKit's modal shows only ETH; the endow flow mints
+100 test USDC when the wallet is short (an automatic welcome mint was tried and removed the
+same day). Chain layer:
+`hooks/chain/contracts.ts` over core's registry, one hook per entrypoint, `useChainMutation` (simulate → send → receipt → subgraph `_meta.block` wait, one
 toast morphing at one id). Observed against live Sepolia: 90 names within 28 days, 26 in grace,
 4,768 USDC of yearly renewals unfunded; spirithbeta's card shows 22.73 USDC, funded through
 2035 at 4%, record `funded until 2 Oct 2035, 1 patron`, the keeper's six-year renewal with its

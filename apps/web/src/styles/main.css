@@ -123,6 +123,10 @@
     color: inherit;
     width: 100%;
   }
+  /* Tailwind 4's preflight gives buttons the default cursor; every enabled control is a hand. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
   input:focus-visible,
   button:focus-visible,
   a:focus-visible {
@@ -132,5 +136,59 @@
   code {
     font-family: var(--font-mono);
     font-size: 0.875em;
+  }
+  /* Prose pages (about, the rendered roadmap): a measure, rhythm, and ruled lists. */
+  article h2 {
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  article h3 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+  article p,
+  article li {
+    line-height: 1.6;
+  }
+  article p {
+    margin: 0.75rem 0;
+  }
+  article h1 + p {
+    margin-top: 1.25rem;
+  }
+  article ul,
+  article ol {
+    margin: 0.75rem 0;
+    padding-left: 1.5rem;
+  }
+  article ul {
+    list-style: disc;
+  }
+  article ol {
+    list-style: decimal;
+  }
+  article li {
+    margin: 0.5rem 0;
+  }
+  article li::marker {
+    color: var(--color-muted);
+  }
+  strong {
+    font-weight: 600;
+  }
+  blockquote strong {
+    color: var(--color-oxide);
+  }
+  article blockquote {
+    border-left: 2px solid var(--color-line-strong);
+    padding-left: 1.25rem;
+    color: var(--color-muted);
+  }
+  article table {
+    margin: 1rem 0;
+    font-size: 0.9375rem;
+  }
+  article a {
+    text-decoration-line: underline;
   }
 }

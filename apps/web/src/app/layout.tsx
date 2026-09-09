@@ -36,8 +36,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Banner />
           {children}
           <footer className="mx-auto w-full max-w-6xl px-6 py-10 text-sm text-muted">
-            Spirith custodies money and never the name. No admin key can move funds. Built for
-            ETHGlobal ETHOnline 2026 on the ENSv2 Sepolia beta.
+            Built for ETHGlobal ETHOnline 2026 on the ENSv2 Sepolia beta.
           </footer>
         </Providers>
       </body>
