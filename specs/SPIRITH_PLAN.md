@@ -57,7 +57,7 @@ spirith/
 │   └── script/ Deploy.s.sol  ProveRenew.s.sol  Config.s.sol
 ├── packages/
 │   ├── core/                 @spirith/core: chain config, address+ABI registry, pricing/discount/runway math (pure, vitest)
-│   ├── subgraph/             @spirith/subgraph: schema.graphql, subgraph.yaml, src/mappings, abis/ (copied from core at build)
+│   ├── subgraph/             @spirith/subgraph: schema.graphql, subgraph.template.yaml, src/ mappings; abis/, subgraph.yaml and src/config.ts rendered from core by scripts/prepare.mjs
 │   └── agent/                @spirith/agent: MCP server (5 tools), cadence optimiser, subgraph client, keeper CLI
 ├── apps/
 │   └── web/                  @spirith/web: Next.js dashboard
@@ -189,7 +189,7 @@ keeper then bought the six-year block for 27.000071 USDC from the earmark. A sec
 withdraws principal plus a month of yield and leaves nothing in the adapter. The keeper CLI
 planned here moved to Phase 5, next to the subgraph client it will use.
 
-### Phase 4 — Subgraph
+### Phase 4 ✅ — Subgraph
 
 - Schema per HANDOVER §5: `Name`, `Endowment`, `Patron`, `RenewalEvent`, plus `Namespace` singleton with running totals (names, endowed, expiring-28d, graveyard count).
 - Data sources from the ETHRegistrar's first block (find via explorer.ens.dev or a binary search on `getCode`): `ETHRegistrar.NameRegistered/NameRenewed`, `ETHRegistry.LabelRegistered/ExpiryUpdated/TransferSingle/ResolverUpdated/LabelUnregistered`, `SpirithVault.*`. Key `Name` by labelhash; tier from label length.
@@ -197,6 +197,27 @@ planned here moved to Phase 5, next to the subgraph client it will use.
 - `packages/core` gets the typed query client and the read-time liveness banding (`risk = f(daysToExpiry, endowed, runway)`).
 
 **Gate:** Studio endpoint answers `names(where: {expiry_lt: now + 28d}, orderBy: expiry)` and `endowments` with the Phase 2 data; URL and API key in `.env`.
+
+Landed 2026-09-08. `packages/subgraph`: `schema.graphql` (`Namespace`, `Name`,
+`Token`, `Endowment`, `Patron`, `Patronage`, `EndowmentEvent`, `RenewalEvent`; HANDOVER §5 has
+the as-built shape), `subgraph.template.yaml` rendered to `subgraph.yaml` by `scripts/prepare.mjs`
+together with `abis/` and `src/config.ts`, all from `@spirith/core`; three mappings
+(`src/registry.ts`, `src/registrar.ts`, `src/vault.ts`). Start blocks from Etherscan: ETHRegistry
+11383897, ETHRegistrar 11383914 (both 2026-07-30), vault 11655091. `graph build` runs inside
+`pnpm check` (`check-types` of the package). `packages/core` gained `subgraph/` (fetch-based
+client, typed queries with bigint parsing) and `liveness.ts` (read-time bands); 11 new vitest
+pins. Graph CLI 0.98.1 / graph-ts 0.38.2 in the catalog.
+
+Deployed to Subgraph Studio 2026-09-08 as `spirith-sepolia` v0.1.0, page
+https://thegraph.com/studio/subgraph/spirith-sepolia, query endpoint
+`https://api.studio.thegraph.com/query/1758987/spirith-sepolia/v0.1.0` (in `.env` as
+`SUBGRAPH_QUERY_URL`; the Studio endpoint takes no API key). The deploy script is `deploy:studio`
+because `pnpm deploy` is a pnpm built-in. Bump `config.versionLabel` in the package manifest
+before redeploying a schema change; Studio keeps one endpoint per version label. Gate observed
+the same day: the endpoint reached chain head (block 11664733) with no indexing errors in about
+25 minutes, holding 171,010 names and 6,057 renewals; `endowments` returns spirithbeta with
+50 USDC contributed, 27.270071 spent, 1 patron, `recordWritten: true`, and `renewalEvents` the
+keeper's six-year renewal with the vault as referrer.
 
 ### Phase 5 — Agent: MCP server + optimiser
 
@@ -242,7 +263,7 @@ Pages, each a folder under `components/pages/`:
 | `pnpm --filter @spirith/agent test` | optimiser |
 | `pnpm --filter @spirith/agent mcp` | start the MCP server on stdio |
 | `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one renewal attempt |
-| `pnpm --filter @spirith/subgraph deploy` | codegen, build, deploy to Studio |
+| `pnpm --filter @spirith/subgraph deploy:studio` | codegen, build, deploy to Studio |
 | `forge test` (in `contracts/`) | unit + invariants |
 | `forge test --fork-url $SEPOLIA_RPC_URL --match-contract RenewFork` | live registrar path |
 | `forge test --fork-url $MAINNET_RPC_URL --match-contract ERC4626AdapterFork` | real yield |

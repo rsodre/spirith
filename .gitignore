@@ -152,3 +152,10 @@ _inbox/
 contracts/out/
 contracts/cache/
 contracts/broadcast/**/dry-run/
+
+# Subgraph: rendered by packages/subgraph/scripts/prepare.mjs and graph codegen/build
+packages/subgraph/abis/
+packages/subgraph/generated/
+packages/subgraph/build/
+packages/subgraph/subgraph.yaml
+packages/subgraph/src/config.ts

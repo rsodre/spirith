@@ -46,16 +46,18 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-Pre-implementation, all Day-1 questions resolved (2026-09-05). `specs/SPIRITH_HANDOVER.md` is
-the source of truth for scope, architecture, decisions and deadline; `specs/SPIRITH_PLAN.md`
-holds the phases, gates and project structure. Read both in full before building anything.
-When this file and a spec disagree, the spec wins; update this file.
+Phases 0–4 landed (2026-09-08); `specs/SPIRITH_PLAN.md`
+has the per-phase record. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
+architecture, decisions and deadline; the plan holds the phases, gates and project structure.
+Read both in full before building anything. When this file and a spec disagree, the spec wins;
+update this file.
 
-Layout: pnpm workspace with `contracts/` (Foundry) and `packages/core` (chain config,
-address+ABI registry, pricing and runway math) in place; `packages/subgraph`, `packages/agent`
-(MCP server, optimiser, keeper CLI) and `apps/web` (Next.js) arrive in later phases. Node 23,
-pnpm 10 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, which must be on
-`PATH` or every contracts script fails with "command not found".
+Layout: pnpm workspace with `contracts/` (Foundry), `packages/core` (chain config, address+ABI
+registry, pricing, runway and liveness math, subgraph query client) and `packages/subgraph`
+(The Graph mappings, live on Subgraph Studio as `spirith-sepolia`) in place; `packages/agent` (MCP
+server, optimiser, keeper CLI) and `apps/web` (Next.js) arrive in later phases. Node 23, pnpm 10
+and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, which must be on `PATH` or
+every contracts script fails with "command not found".
 
 ## Commands
 
@@ -65,16 +67,20 @@ pnpm 10 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, whic
 | `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
 | `pnpm test:fork:mainnet` | ERC-4626 adapter over Aave on a mainnet fork (`MAINNET_RPC_URL` in `.env`) |
 | `pnpm --filter @spirith/core test` | pricing and runway pins only |
-| `pnpm --filter @spirith/core gen:abis` | regenerate `src/generated/` from `artifacts/` |
 | `forge test --match-test <name>` (in `contracts/`) | one Solidity test |
 | `forge script script/ProveRenew.s.sol ...` | renew a name straight on the registrar from a non-owner (Phase 0 proof) |
 | `forge script script/Deploy.s.sol ...` | deploy adapter + vault, write `packages/core/deployments/sepolia.json` |
 | `forge script script/{PrepareName,Endow,Renew}.s.sol ...` | owner resolver setup, endow, keeper renewal against the deployed vault (`LABEL=`) |
 | `pnpm --filter @spirith/core gen:abis` | refresh Spirith ABIs from `contracts/out` and regenerate `src/generated/` |
+| `pnpm --filter @spirith/subgraph build` | render manifest + ABIs from core, `graph codegen`, `graph build` (also runs in `pnpm check`) |
+| `pnpm --filter @spirith/subgraph deploy:studio` | build, then deploy `spirith-sepolia` to Subgraph Studio (`GRAPH_DEPLOY_KEY` in `.env`) |
 
 Vendored ENSv2 interfaces live in `contracts/src/interfaces/ens/`; `test/Interfaces.t.sol`
-pins their selectors. Sepolia addresses live in exactly two mirrored places,
-`contracts/script/Config.s.sol` and `packages/core/src/ens/addresses.ts`; change both or neither.
+pins their selectors. In `packages/subgraph`, `subgraph.yaml`, `abis/` and `src/config.ts` are
+rendered by `scripts/prepare.mjs` from core and git-ignored; edit `subgraph.template.yaml`. The
+mappings are AssemblyScript: `==` for strings, `BigInt` from graph-ts, no closures over locals.
+Sepolia addresses live in exactly two mirrored places, `contracts/script/Config.s.sol` and
+`packages/core/src/ens/addresses.ts`; change both or neither.
 
 ## What Spirith is
 

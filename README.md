@@ -31,8 +31,8 @@ The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMA
 
 ## Status
 
-Phase 2 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
-wallet. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
+Phase 4 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
+wallet, and the subgraph indexes the whole Sepolia namespace. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
 
 | Contract | Address |
 |---|---|
@@ -45,7 +45,12 @@ market accepts the ENS test tokens: with the vault's `ERC4626Adapter` over Aave 
 the rest held liquid as the two-year reserve) and then paid a six-year renewal from the
 earmark. Run it yourself with `pnpm test:fork:mainnet` and a `MAINNET_RPC_URL`.
 
-Nothing is audited. The subgraph, the agent's tools and the dashboard are not built yet.
+A subgraph over the ENSv2 registry and registrar and the vault (`packages/subgraph`) indexes
+every `.eth` name on Sepolia and every Spirith endowment; the dashboard and the agent read it.
+It is live on Subgraph Studio as
+[`spirith-sepolia`](https://thegraph.com/studio/subgraph/spirith-sepolia).
+
+Nothing is audited. The agent's tools and the dashboard are not built yet.
 
 ## AI usage
 
@@ -100,12 +105,20 @@ forge script script/Renew.s.sol ...         # any wallet: renew for the optimal 
 forge script script/Deploy.s.sol ...        # redeploy the vault and rewrite the deployments file
 ```
 
+Deploy the subgraph to Subgraph Studio (create a subgraph named `spirith-sepolia` at
+https://thegraph.com/studio and put its deploy key in `.env`):
+
+```sh
+pnpm --filter @spirith/subgraph deploy:studio
+```
+
 ## Repository
 
 - `contracts/` — Foundry: `SpirithVault`, yield adapters, vendored ENSv2 interfaces, unit,
   fuzz and invariant tests, deploy and proof scripts
 - `packages/core` — shared TypeScript: chain config, ENSv2 and Spirith addresses and ABIs,
-  pricing and runway math
+  pricing, runway and liveness math, the subgraph query client
+- `packages/subgraph` — The Graph subgraph: schema, manifest template and mappings
 - `specs/` — the project handover and the build plan
 - `CLAUDE.md`, `AGENTS.md` — guidance for coding agents
 

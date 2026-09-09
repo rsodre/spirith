@@ -1,0 +1,98 @@
+# Source of subgraph.yaml. scripts/prepare.mjs fills the double-brace placeholders from @spirith/core;
+# never edit the rendered file.
+specVersion: 1.3.0
+description: Spirith on Sepolia. ENSv2 .eth names, their expiries, and the Spirith endowments that keep them alive.
+repository: https://github.com/rsodre/spirith
+schema:
+  file: ./schema.graphql
+indexerHints:
+  prune: auto
+dataSources:
+  - kind: ethereum/contract
+    name: ETHRegistry
+    network: sepolia
+    source:
+      address: '{{ethRegistry}}'
+      abi: ETHRegistry
+      startBlock: {{ethRegistryStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Name
+        - Token
+        - Namespace
+      abis:
+        - name: ETHRegistry
+          file: ./abis/ETHRegistry.json
+      eventHandlers:
+        - event: LabelRegistered(indexed uint256,indexed bytes32,string,address,uint64,indexed address)
+          handler: handleLabelRegistered
+        - event: ExpiryUpdated(indexed uint256,indexed uint64,indexed address)
+          handler: handleExpiryUpdated
+        - event: TransferSingle(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleTransferSingle
+        - event: ResolverUpdated(indexed uint256,indexed address,indexed address)
+          handler: handleResolverUpdated
+        - event: LabelUnregistered(indexed uint256,indexed address)
+          handler: handleLabelUnregistered
+        - event: TokenRegenerated(indexed uint256,indexed uint256)
+          handler: handleTokenRegenerated
+      file: ./src/registry.ts
+  - kind: ethereum/contract
+    name: ETHRegistrar
+    network: sepolia
+    source:
+      address: '{{ethRegistrar}}'
+      abi: ETHRegistrar
+      startBlock: {{ethRegistrarStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Name
+        - RenewalEvent
+        - Namespace
+      abis:
+        - name: ETHRegistrar
+          file: ./abis/ETHRegistrar.json
+      eventHandlers:
+        - event: NameRegistered(indexed uint256,string,address,address,address,uint64,address,indexed bytes32,uint256,uint256)
+          handler: handleNameRegistered
+        - event: NameRenewed(indexed uint256,string,uint64,uint64,address,indexed bytes32,uint256)
+          handler: handleNameRenewed
+      file: ./src/registrar.ts
+  - kind: ethereum/contract
+    name: SpirithVault
+    network: sepolia
+    source:
+      address: '{{spirithVault}}'
+      abi: SpirithVault
+      startBlock: {{spirithVaultStartBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - Name
+        - Endowment
+        - Patron
+        - Patronage
+        - EndowmentEvent
+        - RenewalEvent
+        - Namespace
+      abis:
+        - name: SpirithVault
+          file: ./abis/SpirithVault.json
+      eventHandlers:
+        - event: Endowed(indexed bytes32,string,indexed address,uint256,uint256)
+          handler: handleEndowed
+        - event: WithdrawRequested(indexed bytes32,indexed address,uint256,uint64)
+          handler: handleWithdrawRequested
+        - event: Withdrawn(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleWithdrawn
+        - event: Renewed(indexed bytes32,string,indexed address,uint64,uint64,uint256,uint256,bool)
+          handler: handleRenewed
+      file: ./src/vault.ts

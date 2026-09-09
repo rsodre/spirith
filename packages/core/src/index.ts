@@ -38,3 +38,44 @@ export {
   type RunwayInput,
   type RunwayRange,
 } from './runway.js';
+export {
+  SubgraphError,
+  querySubgraph,
+  type SubgraphConfig,
+} from './subgraph/client.js';
+export {
+  GRACE_PERIOD_SECONDS,
+  NAMESPACE_ID,
+  fetchEndowments,
+  fetchGraveyard,
+  fetchName,
+  fetchNames,
+  fetchNamesAtRisk,
+  fetchNamespace,
+  fetchPatron,
+  labelhash,
+  type NamesQuery,
+} from './subgraph/queries.js';
+export type {
+  NameStatus,
+  SubgraphEndowment,
+  SubgraphEndowmentSummary,
+  SubgraphMeta,
+  SubgraphName,
+  SubgraphNameDetail,
+  SubgraphNamespace,
+  SubgraphPatron,
+  SubgraphPatronage,
+  SubgraphRenewal,
+} from './subgraph/types.js';
+export {
+  CRITICAL_DAYS,
+  DAY,
+  RISK_BANDS,
+  URGENT_DAYS,
+  WATCH_DAYS,
+  liveness,
+  type Liveness,
+  type LivenessInput,
+  type RiskBand,
+} from './liveness.js';

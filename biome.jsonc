@@ -57,6 +57,25 @@
       }
     }
   },
+  "overrides": [
+    {
+      // Subgraph mappings are AssemblyScript: `==` is the only string equality (`===` compares
+      // identity), `BigInt`/`Bytes` come from graph-ts, not the JS globals, and its parser
+      // (0.19) has no `import type`.
+      "includes": ["packages/subgraph/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          },
+          "suspicious": {
+            "noDoubleEquals": "off",
+            "noShadowRestrictedNames": "off"
+          }
+        }
+      }
+    }
+  ],
   "linter": {
     "enabled": true,
     "rules": {

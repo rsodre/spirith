@@ -1,0 +1,162 @@
+# Spirith subgraph schema (HANDOVER §5). Time-dependent facts (days to expiry, risk band,
+# funded-until) are never stored: they are banded at read time in @spirith/core from the
+# inputs kept here, so nothing goes stale the block after it is written.
+
+enum NameStatus {
+  Registered
+  Unregistered
+}
+
+enum EndowmentEventKind {
+  Endowed
+  WithdrawRequested
+  Withdrawn
+}
+
+"Running totals for the whole namespace. One row, id `sepolia`."
+type Namespace @entity(immutable: false) {
+  id: ID!
+  "Distinct names ever registered through the v2 registry."
+  names: Int!
+  "Names currently registered (expired-in-grace included; lapsed names are read-time)."
+  activeNames: Int!
+  "Names with a live Spirith endowment (shares > 0)."
+  endowedNames: Int!
+  registrations: Int!
+  "Renewals through the registrar by anyone."
+  renewals: Int!
+  "Renewals paid by Spirith earmarks."
+  spirithRenewals: Int!
+  "USDC ever endowed, 6 decimals."
+  endowedVolume: BigInt!
+  "Sum of endowment principal still held (contributed - withdrawn - spent)."
+  principal: BigInt!
+  "USDC Spirith has paid to the registrar."
+  renewalSpend: BigInt!
+  "USDC Spirith has paid to keepers."
+  tipsPaid: BigInt!
+  updatedAt: BigInt!
+}
+
+"A .eth second-level name in the v2 registry, keyed by its labelhash."
+type Name @entity(immutable: false) {
+  "keccak256(label)"
+  id: Bytes!
+  label: String!
+  "Codepoint count, as the rent oracle measures it."
+  length: Int!
+  "Price tier: 3, 4 or 5 (5 covers every longer name)."
+  tier: Int!
+  "Current registry token id; changes on regeneration, the labelhash does not."
+  tokenId: BigInt!
+  owner: Bytes!
+  resolver: Bytes
+  "Unix seconds. The name is renewable until expiry + 28 days, then it lapses."
+  expiry: BigInt!
+  status: NameStatus!
+  registeredAt: BigInt!
+  registeredBy: Bytes!
+  "Total paid at the latest registration (base + premium), in the payment token's units."
+  registrationAmount: BigInt!
+  "Registrations of this label, counting re-registrations after a lapse."
+  registrations: Int!
+  renewals: Int!
+  lastRenewedAt: BigInt
+  "Set once the name has ever been endowed; check `endowment.shares` for a live one."
+  endowment: Endowment
+  renewalEvents: [RenewalEvent!]! @derivedFrom(field: "name")
+  updatedAt: BigInt!
+}
+
+"Lookup from a registry token id (low 32 bits masked) to its name."
+type Token @entity(immutable: false) {
+  "tokenId & ~0xffffffff, as 32 bytes"
+  id: Bytes!
+  name: Name!
+}
+
+"One name's earmark in the vault, keyed by labelhash. Assets on chain are principal plus accrued yield; read `assetsOf` for the live figure."
+type Endowment @entity(immutable: false) {
+  id: Bytes!
+  name: Name!
+  label: String!
+  contributed: BigInt!
+  withdrawn: BigInt!
+  "Renewal price plus tips paid out of this earmark."
+  spent: BigInt!
+  tipsPaid: BigInt!
+  "contributed - withdrawn - spent, floored at zero (a withdrawal can take yield)."
+  principal: BigInt!
+  "Internal vault shares outstanding; zero means no live endowment."
+  shares: BigInt!
+  patronCount: Int!
+  renewals: Int!
+  lastRenewedAt: BigInt
+  "Whether the vault's last resolver record write succeeded."
+  recordWritten: Boolean!
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  patronages: [Patronage!]! @derivedFrom(field: "endowment")
+  events: [EndowmentEvent!]! @derivedFrom(field: "endowment")
+}
+
+"An account that has endowed at least one name."
+type Patron @entity(immutable: false) {
+  id: Bytes!
+  contributed: BigInt!
+  withdrawn: BigInt!
+  "Names in which this patron currently holds shares."
+  namesSupported: Int!
+  patronages: [Patronage!]! @derivedFrom(field: "patron")
+}
+
+"One patron's claim on one name."
+type Patronage @entity(immutable: false) {
+  "labelhash ++ patron address"
+  id: Bytes!
+  endowment: Endowment!
+  patron: Patron!
+  shares: BigInt!
+  contributed: BigInt!
+  withdrawn: BigInt!
+  "Shares under a pending withdrawal notice."
+  noticeShares: BigInt!
+  "When the pending notice can be executed; null when none."
+  noticeExecutableAt: BigInt
+  updatedAt: BigInt!
+}
+
+type EndowmentEvent @entity(immutable: true) {
+  "tx hash ++ log index"
+  id: Bytes!
+  endowment: Endowment!
+  patron: Patron!
+  kind: EndowmentEventKind!
+  shares: BigInt!
+  "USDC moved; null for a notice."
+  assets: BigInt
+  "For WithdrawRequested: when the notice matures."
+  executableAt: BigInt
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}
+
+"A renewal through the registrar, by anyone. Spirith renewals carry the keeper and tip."
+type RenewalEvent @entity(immutable: false) {
+  "tx hash ++ labelhash"
+  id: Bytes!
+  name: Name!
+  duration: BigInt!
+  newExpiry: BigInt!
+  amount: BigInt!
+  paymentToken: Bytes!
+  referrer: Bytes!
+  viaSpirith: Boolean!
+  keeper: Bytes
+  tip: BigInt
+  recordWritten: Boolean
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: Bytes!
+}

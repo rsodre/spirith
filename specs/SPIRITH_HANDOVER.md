@@ -252,12 +252,19 @@ With a variable rate, the card must quote a **range**, not a date: *"funded thro
 
 Index ENSv2 on Sepolia **plus** Spirith's own events.
 
-**Entities:**
-- `Name` — label, expiry, price tier, character length, owner
-- `Endowment` — balance, shares, funded-until projection, patron count
-- `Patron` — address, names supported, total contributed
-- `RenewalEvent` — who called, duration purchased, price paid, tip paid
-- `LivenessScore` — days-to-expiry, endowed?, risk band
+**Entities** (as built in `packages/subgraph/schema.graphql`):
+- `Name` — keyed by labelhash: label, length, tier, token id, owner, resolver, expiry, status, registrations, renewals, link to its endowment
+- `Token` — registry token id with the low 32-bit version cleared → `Name`; the only way tokenId-only registry events find their name
+- `Endowment` — keyed by labelhash: contributed, withdrawn, spent (renewals + tips), principal, shares, patron count, renewals, last record-write result
+- `Patron` / `Patronage` — an account, and its claim on one name (shares, contributed, pending notice)
+- `EndowmentEvent` — immutable feed of endow / notice / withdraw
+- `RenewalEvent` — every registrar renewal by anyone (`viaSpirith` from the referrer); the vault's `Renewed` in the same transaction adds keeper, tip and record status
+- `Namespace` — one row of running totals: names, active, endowed, registrations, renewals, Spirith renewals, endowed volume, principal, renewal spend, tips
+
+Nothing time-dependent is stored. Days-to-expiry, the risk band, the graveyard and funded-until
+are computed at read time in `@spirith/core` (`liveness()`, `fetchNamesAtRisk`, `fetchGraveyard`)
+from expiry, endowment and runway, so a score is never stale. Assets on chain are principal plus
+accrued yield; the name card reads `assetsOf` / `runwayOf` from the vault for the live figure.
 
 **Derived views the dashboard needs:**
 - Names expiring in the next 7 / 28 / 90 days
