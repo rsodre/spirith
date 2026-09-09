@@ -1,23 +1,38 @@
 'use client';
 
 import { useMemo } from 'react';
+import { GRACE_PERIOD_SECONDS } from '@spirith/core';
+import Link from 'next/link';
+import { ExternalLink } from '@/components/ExternalLink';
 import { NameLink } from '@/components/NameLink';
 import { Spinner } from '@/components/ui';
 import { type RecordTarget, useSpirithFundedUntilMany } from '@/hooks/chain/use-resolver';
-import { useVaultRunways } from '@/hooks/chain/use-vault';
+import { type VaultRunway, useVaultConstants, useVaultRunways } from '@/hooks/chain/use-vault';
+import { useNow } from '@/hooks/use-now';
+import { WarningIcon } from '@/icons';
 import { useEndowments } from '@/hooks/queries/use-endowments';
 import { useNamespace } from '@/hooks/queries/use-namespace';
-import { formatDate, formatUsdc, fundedRange } from '@/lib/format';
+import { ensExplorerName } from '@/lib/chain';
+import { formatDate, formatDays, formatDollars, fundedRange } from '@/lib/format';
 
 const EMPTY: readonly string[] = [];
 const NO_TARGETS: readonly RecordTarget[] = [];
 
-// The names with a standing order. Principal and patrons from the subgraph; the live earmark
-// and its funded-until range from the vault, one multicall for the whole list.
+const DAY = 86_400n;
+
+// The names with a standing order, nearest expiry first. Principal and patrons from the
+// subgraph; the live earmark and its funded-until range from the vault, one multicall for the
+// whole list; the renewal column from the vault's own trigger (lead window, or grace).
 export function EndowedPage() {
+  const now = useNow();
   const q = useEndowments();
   const namespace = useNamespace();
-  const rows = q.data?.endowments ?? [];
+  const { constants } = useVaultConstants();
+  const rows = useMemo(
+    () =>
+      q.data ? [...q.data.endowments].sort((a, b) => Number(a.name.expiry - b.name.expiry)) : [],
+    [q.data],
+  );
   const labels = useMemo(() => (q.data ? q.data.endowments.map(e => e.label) : EMPTY), [q.data]);
   const { runways } = useVaultRunways(labels);
   // The record itself, from each name's resolver: the subgraph only learns of a write from
@@ -47,7 +62,7 @@ export function EndowedPage() {
         </h1>
         <p className="mt-5 font-title text-xl leading-relaxed text-muted">
           {ns
-            ? `${formatUsdc(ns.endowedVolume)} USDC deposited in all, ${formatUsdc(ns.renewalSpend)} USDC already paid to the registrar by the vault, ${formatUsdc(ns.tipsPaid)} USDC of it to whoever pressed the button.`
+            ? `${formatDollars(ns.endowedVolume)} deposited in all, ${formatDollars(ns.renewalSpend)} already paid to the registrar by the vault, ${formatDollars(ns.tipsPaid)} of it to whoever pressed the button.`
             : 'Each deposit is earmarked for one name and can leave only as that name’s renewal or back to its patron.'}
         </p>
       </section>
@@ -57,11 +72,11 @@ export function EndowedPage() {
             <tr>
               <th>Name</th>
               <th>Expires</th>
-              <th className="num">Holds</th>
+              <th className="num">Endowment</th>
               <th>Funded</th>
               <th className="num">Patrons</th>
-              <th className="num">Renewals</th>
-              <th>Record</th>
+              <th>Renewal</th>
+              <th>ENSv2 record</th>
             </tr>
           </thead>
           <tbody>
@@ -97,20 +112,34 @@ export function EndowedPage() {
                     </td>
                     <td className="whitespace-nowrap">{formatDate(e.name.expiry)}</td>
                     <td className="num whitespace-nowrap">
-                      {runway ? `${formatUsdc(runway.assets)} USDC` : <Spinner />}
+                      {runway ? formatDollars(runway.assets) : <Spinner />}
                     </td>
                     <td className="whitespace-nowrap text-verdigris">
                       {runway ? range ? range.text : 'not enough for a year' : <Spinner />}
                     </td>
                     <td className="num">{e.patronCount}</td>
-                    <td className="num">{e.renewals}</td>
+                    <td className="whitespace-nowrap">
+                      {runway && constants ? (
+                        <RenewalCell
+                          label={e.label}
+                          expiry={e.name.expiry}
+                          runway={runway}
+                          renewLead={constants.renewLead}
+                          now={now}
+                        />
+                      ) : (
+                        <Spinner />
+                      )}
+                    </td>
                     <td
                       className={fundedUntil.get(e.label) != null ? 'text-verdigris' : 'text-muted'}
                     >
                       {recordsLoading ? (
                         <Spinner />
                       ) : fundedUntil.get(e.label) != null ? (
-                        `published, until ${formatDate(fundedUntil.get(e.label) as bigint)}`
+                        <ExternalLink href={ensExplorerName(e.label)} className="text-verdigris">
+                          published, until {formatDate(fundedUntil.get(e.label) as bigint)}
+                        </ExternalLink>
                       ) : (
                         'not published'
                       )}
@@ -124,4 +153,33 @@ export function EndowedPage() {
       </div>
     </main>
   );
+}
+
+interface RenewalCellProps {
+  label: string;
+  expiry: bigint;
+  runway: VaultRunway;
+  renewLead: bigint;
+  now: bigint;
+}
+
+// The same clock the name card's Renew panel shows: in oxide once anyone may press renew.
+function RenewalCell({ label, expiry, runway, renewLead, now }: RenewalCellProps) {
+  const deadline = expiry + GRACE_PERIOD_SECONDS;
+  const dueAt = expiry - renewLead;
+  if (now >= deadline) return <span className="text-muted">lapsed</span>;
+  if (runway.duration === 0n) return <span className="text-amber">underfunded</span>;
+  if (now >= dueAt) {
+    return (
+      <Link
+        href={`/name/${encodeURIComponent(label)}`}
+        className="inline-flex items-center gap-1.5 text-oxide"
+      >
+        <WarningIcon size="sm" />
+        {now >= expiry ? 'in grace, renew now' : 'renew now'}, dies in{' '}
+        {formatDays(Number((deadline - now) / DAY))}
+      </Link>
+    );
+  }
+  return <span className="text-muted">renew in {formatDays(Number((dueAt - now) / DAY))}</span>;
 }

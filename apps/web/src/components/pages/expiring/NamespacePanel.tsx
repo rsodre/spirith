@@ -1,6 +1,6 @@
 import type { SubgraphMeta, SubgraphNamespace } from '@spirith/core';
 import { Spinner } from '@/components/ui';
-import { formatUsdc } from '@/lib/format';
+import { formatDollars } from '@/lib/format';
 
 interface Props {
   namespace: SubgraphNamespace | null;
@@ -36,11 +36,11 @@ export function NamespacePanel({ namespace, meta, isLoading }: Props) {
           <dt className="text-muted">Renewals paid by Spirith</dt>
           <dd className="text-right text-verdigris">{namespace.spirithRenewals}</dd>
           <dt className="text-muted">Endowed, total</dt>
-          <dd className="text-right">{formatUsdc(namespace.endowedVolume)} USDC</dd>
+          <dd className="text-right">{formatDollars(namespace.endowedVolume)}</dd>
           <dt className="text-muted">Spent on renewals</dt>
-          <dd className="text-right">{formatUsdc(namespace.renewalSpend)} USDC</dd>
+          <dd className="text-right">{formatDollars(namespace.renewalSpend)}</dd>
           <dt className="text-muted">Keeper tips</dt>
-          <dd className="text-right">{formatUsdc(namespace.tipsPaid)} USDC</dd>
+          <dd className="text-right">{formatDollars(namespace.tipsPaid)}</dd>
         </dl>
       )}
       {meta ? (

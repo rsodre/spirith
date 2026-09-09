@@ -11,13 +11,13 @@ interface Props {
 // Every renewal the registrar recorded, by anyone; the ones Spirith paid say who pressed
 // the button and what they took home.
 export function RenewalHistory({ renewals, isLoading }: Props) {
+  // The facts list already says "Never renewed"; an empty table would only repeat it.
+  if (!isLoading && renewals.length === 0) return null;
   return (
     <section>
       <h2 className="mb-4">Renewals</h2>
       {isLoading ? (
         <Spinner />
-      ) : renewals.length === 0 ? (
-        <p className="text-sm text-muted">Never renewed.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="text-sm">

@@ -1,12 +1,14 @@
 'use client';
 
 import { useCallback } from 'react';
+import { GRACE_PERIOD_SECONDS } from '@spirith/core';
 import { Button, Panel, Spinner } from '@/components/ui';
+import { WarningIcon } from '@/icons';
 import { useRenewFlow } from '@/hooks/chain/use-renew-flow';
 import { useRenewPrice } from '@/hooks/chain/use-registrar';
 import { type VaultConstants, type VaultRunway, tipFor } from '@/hooks/chain/use-vault';
 import type { Wallet } from '@/hooks/chain/use-wallet';
-import { formatDate, formatDuration, formatUsdc } from '@/lib/format';
+import { formatDate, formatDays, formatDuration, formatUsdc } from '@/lib/format';
 
 interface Props {
   label: string;
@@ -49,14 +51,36 @@ export function RenewPanel({ label, now, expiry, runway, constants, renewable, w
   const due = now >= dueAt;
   const funded = runway.duration > 0n;
   const tip = price !== undefined ? tipFor(price, constants) : undefined;
+  const deadline = expiry + GRACE_PERIOD_SECONDS;
+  const inGrace = now >= expiry && now < deadline;
+
+  // The same warning the expiring register carries: the clock, in oxide, whenever the name is
+  // inside its lead window or its grace period.
+  const alert = !renewable ? null : inGrace ? (
+    <p className="flex items-start gap-2 text-oxide">
+      <WarningIcon size="sm" className="mt-1 shrink-0" />
+      <span>
+        Expired on {formatDate(expiry)}, dies in {formatDays(Number((deadline - now) / 86_400n))}.
+      </span>
+    </p>
+  ) : due ? (
+    <p className="flex items-start gap-2 text-oxide">
+      <WarningIcon size="sm" className="mt-1 shrink-0" />
+      <span>
+        Expires on {formatDate(expiry)}, dies in {formatDays(Number((deadline - now) / 86_400n))}.
+      </span>
+    </p>
+  ) : null;
 
   return (
     <Panel title="Renew">
+      {alert}
       {!renewable ? (
         <p className="text-muted">The registrar no longer accepts a renewal for this name.</p>
       ) : !funded ? (
-        <p className="text-muted">
-          The earmark cannot pay for one year yet, so there is nothing for a keeper to do.
+        <p className={alert ? 'mt-3' : 'text-muted'}>
+          The earmark cannot pay for one year, so there is nothing for a keeper to do. Endowing it
+          is what saves the name.
         </p>
       ) : !due ? (
         <p className="text-muted">
@@ -64,7 +88,7 @@ export function RenewPanel({ label, now, expiry, runway, constants, renewable, w
           There is no early-renew path: prepaying years ahead would only stop the deposit earning.
         </p>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className={alert ? 'mt-3 flex flex-col gap-4' : 'flex flex-col gap-4'}>
           <p>
             Anyone may press this. The vault pays the registrar{' '}
             {price !== undefined ? `${formatUsdc(price)} USDC` : '…'} for{' '}

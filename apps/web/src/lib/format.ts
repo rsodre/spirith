@@ -16,6 +16,11 @@ export function formatUsdc(units: bigint, digits = 2): string {
   return `${negative ? '-' : ''}${wholeText}${digits > 0 ? `.${fraction}` : ''}`;
 }
 
+/** `1234567n` → "$1.23"; the dollar form for lists, where the token name is noise. */
+export function formatDollars(units: bigint, digits = 2): string {
+  return `$${formatUsdc(units, digits)}`;
+}
+
 /** "12.50" → 12_500_000n; throws on anything that is not a positive decimal. */
 export function parseUsdc(text: string): bigint {
   const m = /^\s*(\d+)(?:\.(\d{0,6}))?\s*$/.exec(text);

@@ -79,10 +79,12 @@ export function useChainMutation<TArgs, TResult>(
         toast.loading(<span>{name}</span>, {
           id: toastId,
           description: (
-            <span className="flex items-center gap-2">
-              <span>{step}</span>
-              {detail}
-              <ElapsedTimeBadge startedAt={startedAt} />
+            <span className="flex flex-col gap-1">
+              <span className="flex items-baseline justify-between gap-4">
+                <span>{step}</span>
+                <ElapsedTimeBadge startedAt={startedAt} className="shrink-0" />
+              </span>
+              {detail ? <span className="whitespace-nowrap">{detail}</span> : null}
             </span>
           ),
         });

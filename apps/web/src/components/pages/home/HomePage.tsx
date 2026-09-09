@@ -87,6 +87,11 @@ export function HomePage() {
           title="Roadmap"
           text="The same standing order for the files an NFT points at, and for the .com old contracts still hard-code."
         />
+        <Door
+          href="/developers"
+          title="Developers"
+          text="The source, the contracts on Sepolia, the subgraph, the MCP server and the keeper."
+        />
       </nav>
     </main>
   );

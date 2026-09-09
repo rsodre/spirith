@@ -1,9 +1,12 @@
 'use client';
 
+import { useMemo } from 'react';
 import { GRACE_PERIOD_SECONDS, type SubgraphName } from '@spirith/core';
+import Link from 'next/link';
 import { AddressLink } from '@/components/AddressLink';
 import { NameLink } from '@/components/NameLink';
 import { Spinner } from '@/components/ui';
+import { useVaultRunways } from '@/hooks/chain/use-vault';
 import { useGraveyard } from '@/hooks/queries/use-graveyard';
 import { useNamesAtRisk } from '@/hooks/queries/use-names-at-risk';
 import { useNow } from '@/hooks/use-now';
@@ -11,14 +14,25 @@ import { formatDate, formatDays, tierLabel } from '@/lib/format';
 
 const EMPTY: readonly SubgraphName[] = [];
 
-// Names that already lapsed, and beneath them the ones in their last 28 days: expired, still
-// renewable, one deposit away from either list.
+// Names that already lapsed, and one line for the ones in their last 28 days: expired, still
+// renewable, one deposit or one button press away from either list.
 export function GraveyardPage() {
   const now = useNow();
   const lapsed = useGraveyard();
   const grace = useNamesAtRisk(0);
   const names = lapsed.data?.names ?? EMPTY;
   const dying = grace.data?.names ?? EMPTY;
+  const endowedLabels = useMemo(
+    () => dying.filter(n => (n.endowment?.shares ?? 0n) > 0n).map(n => n.label),
+    [dying],
+  );
+  const { runways } = useVaultRunways(endowedLabels);
+  // Ready means the vault's own trigger holds: in grace, with an earmark that pays a year.
+  const ready = useMemo(
+    () => endowedLabels.filter(l => (runways.get(l)?.duration ?? 0n) > 0n).length,
+    [endowedLabels, runways],
+  );
+  const needEndowment = dying.length - ready;
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <section className="mb-10 max-w-3xl">
@@ -53,17 +67,26 @@ export function GraveyardPage() {
         muted
       />
 
-      <div className="h-12" />
-
-      <Register
-        title="In grace"
-        names={dying}
-        isLoading={grace.isLoading}
-        error={grace.error}
-        empty="No name is in its grace period."
-        column="Renewable for"
-        cell={n => formatDays(Number((n.expiry + GRACE_PERIOD_SECONDS - now) / 86_400n))}
-      />
+      <p className="mt-12 font-title text-xl leading-relaxed">
+        {grace.isLoading ? (
+          <Spinner />
+        ) : dying.length === 0 ? (
+          <span className="text-muted">No name is in its grace period.</span>
+        ) : (
+          <Link href="/expiring">
+            <span className="text-oxide">{needEndowment}</span>{' '}
+            {needEndowment === 1 ? 'name' : 'names'} in the grace period{' '}
+            {needEndowment === 1 ? 'needs' : 'need'} an endowment
+            {ready > 0 ? (
+              <>
+                , <span className="text-verdigris">{ready}</span> {ready === 1 ? 'is' : 'are'} ready
+                to renew
+              </>
+            ) : null}
+            .
+          </Link>
+        )}
+      </p>
     </main>
   );
 }

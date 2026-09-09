@@ -1,4 +1,4 @@
-import { formatUsdc, tierLabel } from '@/lib/format';
+import { formatDollars, tierLabel } from '@/lib/format';
 
 export interface TierRow {
   readonly tier: number;
@@ -19,7 +19,7 @@ export function ValueAtRisk({ tiers }: { tiers: readonly TierRow[] }) {
             <tr>
               <th>Tier</th>
               <th className="num">Names</th>
-              <th className="num">USDC / year</th>
+              <th className="num">Per year</th>
             </tr>
           </thead>
           <tbody>
@@ -27,7 +27,7 @@ export function ValueAtRisk({ tiers }: { tiers: readonly TierRow[] }) {
               <tr key={t.tier}>
                 <td>{tierLabel(t.tier)}</td>
                 <td className="num">{t.names}</td>
-                <td className="num">{formatUsdc(t.yearly)}</td>
+                <td className="num">{formatDollars(t.yearly)}</td>
               </tr>
             ))}
           </tbody>

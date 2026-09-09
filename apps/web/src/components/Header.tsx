@@ -1,5 +1,7 @@
 'use client';
 
+import { Fragment } from 'react';
+
 import { ConnectKitButton } from 'connectkit';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -12,12 +14,18 @@ import { APP_CHAIN } from '@/lib/chain';
 import { cn } from '@/lib/cn';
 import { formatUsdc, shortAddress } from '@/lib/format';
 
-const NAV = [
-  { href: '/endowed', label: 'Endowed' },
-  { href: '/expiring', label: 'Expiring' },
-  { href: '/graveyard', label: 'Graveyard' },
-  { href: '/about', label: 'About' },
-  { href: '/roadmap', label: 'Roadmap' },
+// Two groups, a rule between them: the registers of names, then the pages about the project.
+const NAV_GROUPS = [
+  [
+    { href: '/endowed', label: 'Endowed' },
+    { href: '/expiring', label: 'Expiring' },
+    { href: '/graveyard', label: 'Graveyard' },
+  ],
+  [
+    { href: '/about', label: 'About' },
+    { href: '/roadmap', label: 'Roadmap' },
+    { href: '/developers', label: 'Developers' },
+  ],
 ] as const;
 
 // Mounted once in the root layout. The wordmark is the one italic on the page.
@@ -30,17 +38,22 @@ export function Header() {
           Spirith
         </Link>
         <nav className="flex flex-wrap items-center gap-5 text-sm">
-          {NAV.map(item => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'text-muted',
-                pathname.startsWith(item.href) && 'text-ink underline underline-offset-4',
-              )}
-            >
-              {item.label}
-            </Link>
+          {NAV_GROUPS.map((group, i) => (
+            <Fragment key={group[0].href}>
+              {i > 0 ? <span aria-hidden className="h-4 w-px bg-line-strong" /> : null}
+              {group.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'text-muted',
+                    pathname.startsWith(item.href) && 'text-ink underline underline-offset-4',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </Fragment>
           ))}
         </nav>
         <div className="ml-auto">

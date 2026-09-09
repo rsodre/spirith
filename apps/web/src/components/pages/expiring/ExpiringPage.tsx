@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import {
-  type RiskBand,
   type SubgraphName,
   SECONDS_PER_YEAR,
   type Tier,
@@ -13,7 +12,7 @@ import { useVaultRunways } from '@/hooks/chain/use-vault';
 import { useNamesAtRisk } from '@/hooks/queries/use-names-at-risk';
 import { useNamespace } from '@/hooks/queries/use-namespace';
 import { useNow } from '@/hooks/use-now';
-import { formatUsdc, yearsUntil } from '@/lib/format';
+import { formatDollars, yearsUntil } from '@/lib/format';
 import { AtRiskRegister, type RegisterRow } from './AtRiskRegister';
 import { NamespacePanel } from './NamespacePanel';
 import { ValueAtRisk, type TierRow } from './ValueAtRisk';
@@ -36,9 +35,8 @@ export function ExpiringPage() {
   );
   const { runways } = useVaultRunways(endowedLabels);
 
+  // Soonest death first, endowed or not: the register is a calendar, the band says who pays.
   const rows = useMemo<readonly RegisterRow[]>(() => {
-    const severity = (band: RiskBand) =>
-      ['lapsed', 'grace', 'critical', 'urgent', 'watch', 'safe', 'endowed'].indexOf(band);
     return names
       .map(name => {
         const endowed = (name.endowment?.shares ?? 0n) > 0n;
@@ -49,18 +47,14 @@ export function ExpiringPage() {
           name,
           endowed,
           assets: runway?.assets ?? null,
+          duration: runway?.duration ?? null,
           band: l.band,
           daysToExpiry: l.daysToExpiry,
           deadline: l.deadline,
           yearlyCost: tierRenewPrice(name.tier as Tier, ONE_YEAR),
         };
       })
-      .sort(
-        (a, b) =>
-          severity(a.band) - severity(b.band) ||
-          Number(b.yearlyCost - a.yearlyCost) ||
-          Number(a.name.expiry - b.name.expiry),
-      );
+      .sort((a, b) => Number(a.deadline - b.deadline) || Number(b.yearlyCost - a.yearlyCost));
   }, [names, runways, now]);
 
   const totals = useMemo(() => {
@@ -95,8 +89,8 @@ export function ExpiringPage() {
           ) : (
             <>
               {totals.grace} {totals.grace === 1 ? 'is' : 'are'} already in the 28-day grace period.{' '}
-              {totals.unfunded} have no endowment, so {formatUsdc(totals.valueAtRisk)} USDC of
-              yearly renewals has nobody to pay it.
+              {totals.unfunded} have no endowment, so {formatDollars(totals.valueAtRisk)} of yearly
+              renewals has nobody to pay it.
               {ns ? (
                 <>
                   {' '}
@@ -110,7 +104,12 @@ export function ExpiringPage() {
       </section>
 
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <AtRiskRegister rows={rows} isLoading={atRisk.isLoading} windowDays={WINDOW_DAYS} />
+        <AtRiskRegister
+          rows={rows}
+          isLoading={atRisk.isLoading}
+          windowDays={WINDOW_DAYS}
+          now={now}
+        />
         <aside className="flex flex-col gap-10">
           <ValueAtRisk tiers={totals.tiers} />
           <NamespacePanel

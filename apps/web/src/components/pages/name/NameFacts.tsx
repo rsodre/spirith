@@ -9,9 +9,11 @@ import {
 } from '@spirith/core';
 import type { Address } from 'viem';
 import { AddressLink } from '@/components/AddressLink';
+import { ExternalLink } from '@/components/ExternalLink';
 import { Spinner } from '@/components/ui';
 import { ZERO_ADDRESS } from '@/hooks/chain/contracts';
 import type { SpirithRecords } from '@/hooks/chain/use-resolver';
+import { ensExplorerName } from '@/lib/chain';
 import { formatDate, formatUsdc, tierLabel } from '@/lib/format';
 
 interface Props {
@@ -77,7 +79,7 @@ export function NameFacts({ label, expiry, owner, resolver, records, name, recor
             <span className="text-muted">none</span>
           )}
         </Row>
-        <Row term="Funding record">
+        <Row term="ENSv2 record">
           {resolver === undefined ? (
             <Spinner />
           ) : !hasResolver ? (
@@ -87,16 +89,14 @@ export function NameFacts({ label, expiry, owner, resolver, records, name, recor
           ) : !records.supported ? (
             <span className="text-muted">not supported by this resolver</span>
           ) : records.fundedUntil !== null ? (
-            <span className="text-verdigris">
+            <ExternalLink href={ensExplorerName(label)} className="text-verdigris">
               funded until {formatDate(records.fundedUntil)}
               {records.patrons !== null
                 ? `, ${records.patrons} ${records.patrons === 1 ? 'patron' : 'patrons'}`
                 : ''}
-            </span>
+            </ExternalLink>
           ) : recordWritten === false ? (
-            <span className="text-amber">
-              not authorised: the owner has not let Spirith write it
-            </span>
+            <span className="text-amber">not authorised by the owner</span>
           ) : (
             <span className="text-muted">not written yet</span>
           )}
@@ -108,8 +108,16 @@ export function NameFacts({ label, expiry, owner, resolver, records, name, recor
               {name.registrations > 1 ? `, ${name.registrations} times` : ''}
             </Row>
             <Row term="Renewals">
-              {name.renewals}
-              {name.endowmentDetail ? `, ${name.endowmentDetail.renewals} paid by Spirith` : ''}
+              {name.renewals === 0 ? (
+                <span className="text-muted">Never renewed</span>
+              ) : (
+                <>
+                  {name.renewals}
+                  {name.endowmentDetail && name.endowmentDetail.renewals > 0
+                    ? `, ${name.endowmentDetail.renewals} paid by Spirith`
+                    : ''}
+                </>
+              )}
             </Row>
           </>
         ) : null}

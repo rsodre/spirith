@@ -59,7 +59,7 @@ in the same package renews any endowed name the vault allows and collects the ti
 The dashboard (`apps/web`) is a Next.js app over the subgraph and the chain. The front page
 counts the names dying this month; behind it are the register of expiring names with the value
 at risk by price tier, the endowed names with their funded-until ranges, the graveyard, an
-about page and the roadmap. Each name has a card with the endow flow (100 test USDC are minted for a
+about page, the roadmap and a developers page with the addresses and the MCP setup. Each name has a card with the endow flow (100 test USDC are minted for a
 wallet that is short), a "renew now" button anyone can press once the name is
 inside its 30-day lead window, and the owner's one-time step that lets the vault publish the
 funding record. It needs a browser wallet on Sepolia; nothing else. Endowments on Sepolia are
@@ -97,7 +97,7 @@ pnpm check                  # lint, typecheck, unit tests (TypeScript and Solidi
 pnpm test:fork:sepolia      # ENSv2 interfaces and the full demo path against live Sepolia
 pnpm test:fork:mainnet      # real yield from Aave on a mainnet fork (needs MAINNET_RPC_URL)
 pnpm --filter @spirith/agent keeper once --label <name> --dry-run   # what a keeper would do
-pnpm dev                    # the dashboard on http://localhost:3000 (reads the root .env)
+pnpm dev                    # the dashboard on http://localhost:3000 (reads the root .env at start; restart after editing it)
 ```
 
 Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is

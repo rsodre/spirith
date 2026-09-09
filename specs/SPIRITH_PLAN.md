@@ -269,7 +269,8 @@ Landed 2026-09-09. `apps/web` (`@spirith/web`): pages `/` (the count of names ex
 register worst-first with read-time bands, unfunded yearly renewals by tier, namespace totals),
 `/endowed` (live endowments, one multicall for the runways), `/about`, `/roadmap` (the spec
 file read at build time, handover cross-references stripped, rendered with react-markdown),
-`/name/[label]` (facts from the chain, the funding
+`/developers` (repository, contract addresses from core's registries, subgraph, MCP tools and
+`.mcp.json`, keeper), `/name/[label]` (facts from the chain, the funding
 record read from the resolver, endowment with the funded-until range from `runwayOf`, endow
 form with mint → approve → endow, renew panel gated on the vault's own trigger and showing price
 and tip, owner panel running the `PrepareName` flow from the browser, patron panel with notice

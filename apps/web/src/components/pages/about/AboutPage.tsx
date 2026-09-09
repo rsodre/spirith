@@ -1,6 +1,5 @@
 import { ExternalLink } from '@/components/ExternalLink';
-
-const REPO = 'https://github.com/rsodre/spirith';
+import { REPO_URL } from '@/lib/links';
 
 // What Spirith is, in the order a careful reader asks: what it holds, how a renewal happens,
 // what it costs, what it cannot promise, and who did it first. Prose, ruled by headings.
@@ -76,8 +75,8 @@ export function AboutPage() {
         <h2>Code</h2>
         <p>
           Contracts, subgraph, agent and this dashboard are open source at{' '}
-          <ExternalLink href={REPO}>{REPO.replace('https://', '')}</ExternalLink>. The vault on
-          Sepolia is verified on Etherscan; the addresses are on the bench page and in the
+          <ExternalLink href={REPO_URL}>{REPO_URL.replace('https://', '')}</ExternalLink>. The vault
+          on Sepolia is verified on Etherscan; the addresses are on the bench page and in the
           repository.
         </p>
       </article>
