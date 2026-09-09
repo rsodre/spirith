@@ -131,6 +131,10 @@ https://thegraph.com/studio and put its deploy key in `.env`):
 pnpm --filter @spirith/subgraph deploy:studio
 ```
 
+Deploy the dashboard on Vercel: import the repository with Root Directory set to `apps/web` and
+the same variables as `.env` in the project settings. The web package's build script builds
+`packages/core` first, so no custom build command is needed.
+
 Ask the agent (Claude Code reads `.mcp.json` in this repository; for Claude Desktop see
 `packages/agent/README.md`):
 

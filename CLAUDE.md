@@ -66,7 +66,7 @@ every contracts script fails with "command not found".
 | `pnpm check` | the gate: Biome + `forge fmt --check`, core build + `tsc --noEmit`, vitest, `forge test` |
 | `pnpm dev` | the user's dashboard dev server on :3000; the agent never runs this |
 | `pnpm dev:claude` | the agent's dashboard dev server on :3100, building into `apps/web/.next-claude` |
-| `pnpm --filter @spirith/web build` | production build of the dashboard (`next build`) |
+| `pnpm --filter @spirith/web build` | production build of the dashboard: builds core, then `next build` (what Vercel runs with Root Directory `apps/web`) |
 | `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
 | `pnpm test:fork:mainnet` | ERC-4626 adapter over Aave on a mainnet fork (`MAINNET_RPC_URL` in `.env`) |
 | `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one keeper attempt; simulates without `KEEPER_PRIVATE_KEY` |
