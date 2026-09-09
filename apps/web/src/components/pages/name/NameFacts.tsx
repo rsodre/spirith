@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui';
 import { ZERO_ADDRESS } from '@/hooks/chain/contracts';
 import type { SpirithRecords } from '@/hooks/chain/use-resolver';
 import { ensExplorerName } from '@/lib/chain';
+import { ensManagerName } from '@/lib/links';
 import { formatDate, formatUsdc, tierLabel } from '@/lib/format';
 
 interface Props {
@@ -67,7 +68,12 @@ export function NameFacts({ label, expiry, owner, resolver, records, name, recor
           ) : owner === ZERO_ADDRESS ? (
             <span className="text-muted">none</span>
           ) : (
-            <AddressLink address={owner} />
+            <span className="inline-flex flex-wrap items-center gap-3">
+              <AddressLink address={owner} />
+              <ExternalLink href={ensManagerName(label)} className="text-sm text-muted">
+                Manage
+              </ExternalLink>
+            </span>
           )}
         </Row>
         <Row term="Resolver">

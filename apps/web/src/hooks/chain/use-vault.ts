@@ -149,3 +149,32 @@ export function usePatronPosition(label: string, patron: Address | undefined) {
   }, [q.data]);
   return { position, isLoading: q.isLoading || labelhash.isLoading };
 }
+
+/** `patronAssets(label, patron)` for many names in one multicall; keyed by label. */
+export function usePatronAssetsMany(labels: readonly string[], patron: Address | undefined) {
+  const contracts = useMemo(
+    () =>
+      patron
+        ? labels.map(label => ({
+            ...VAULT,
+            functionName: 'patronAssets' as const,
+            args: [label, patron] as const,
+          }))
+        : [],
+    [labels, patron],
+  );
+  const q = useReadContracts({
+    contracts,
+    allowFailure: true,
+    query: { enabled: contracts.length > 0 },
+  });
+  const assets = useMemo(() => {
+    const map = new Map<string, bigint>();
+    q.data?.forEach((r, i) => {
+      const label = labels[i];
+      if (label !== undefined && r.status === 'success') map.set(label, r.result);
+    });
+    return map;
+  }, [q.data, labels]);
+  return { assets, isLoading: contracts.length > 0 && q.isLoading };
+}

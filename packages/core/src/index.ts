@@ -52,6 +52,7 @@ export {
   fetchName,
   fetchNames,
   fetchNamesAtRisk,
+  fetchNamesOwnedBy,
   fetchNamespace,
   fetchPatron,
   labelhash,

@@ -14,17 +14,29 @@ interface Props {
   label: string;
   now: bigint;
   expiry: bigint | undefined;
-  runway: VaultRunway | undefined;
+  /** undefined while loading; null when the vault cannot price the name. */
+  runway: VaultRunway | null | undefined;
   constants: VaultConstants | undefined;
   renewable: boolean | undefined;
+  v1Reserved: boolean;
   wallet: Wallet;
 }
 
 // Permissionless renewal. The button is for anyone, owner or stranger, and shows what the
 // vault will pay and what the caller takes home. It appears only when the vault's own
 // trigger holds: inside the lead window (or grace), with an earmark that affords a year.
-export function RenewPanel({ label, now, expiry, runway, constants, renewable, wallet }: Props) {
+export function RenewPanel({
+  label,
+  now,
+  expiry,
+  runway,
+  constants,
+  renewable,
+  v1Reserved,
+  wallet,
+}: Props) {
   const duration = runway?.duration;
+  const unrenewable = renewable === false;
   const { price } = useRenewPrice(label, duration);
   const renew = useRenewFlow(label);
   const onRenew = useCallback(() => {
@@ -35,6 +47,17 @@ export function RenewPanel({ label, now, expiry, runway, constants, renewable, w
     renew.mutate();
   }, [wallet, renew]);
 
+  if (unrenewable) {
+    return (
+      <Panel title="Renew">
+        <p className="text-muted">
+          {v1Reserved
+            ? 'An ENSv1 name: the ENSv2 registrar cannot renew it until its owner migrates it.'
+            : 'The registrar does not accept a renewal for this name.'}
+        </p>
+      </Panel>
+    );
+  }
   if (
     expiry === undefined ||
     runway === undefined ||
@@ -49,7 +72,8 @@ export function RenewPanel({ label, now, expiry, runway, constants, renewable, w
   }
   const dueAt = expiry - constants.renewLead;
   const due = now >= dueAt;
-  const funded = runway.duration > 0n;
+  const block = runway?.duration ?? 0n;
+  const funded = block > 0n;
   const tip = price !== undefined ? tipFor(price, constants) : undefined;
   const deadline = expiry + GRACE_PERIOD_SECONDS;
   const inGrace = now >= expiry && now < deadline;
@@ -91,15 +115,13 @@ export function RenewPanel({ label, now, expiry, runway, constants, renewable, w
         <div className={alert ? 'mt-3 flex flex-col gap-4' : 'flex flex-col gap-4'}>
           <p>
             Anyone may press this. The vault pays the registrar{' '}
-            {price !== undefined ? `${formatUsdc(price)} USDC` : '…'} for{' '}
-            {formatDuration(runway.duration)} from this name's own earmark, and tips the caller{' '}
+            {price !== undefined ? `${formatUsdc(price)} USDC` : '…'} for {formatDuration(block)}{' '}
+            from this name's own earmark, and tips the caller{' '}
             {tip !== undefined ? `${formatUsdc(tip)} USDC` : '…'}.
           </p>
           <div className="flex items-center gap-3">
             <Button onClick={onRenew} loading={renew.isPending} size="lg">
-              {wallet.isConnected
-                ? `Renew now for ${formatDuration(runway.duration)}`
-                : 'Connect to renew'}
+              {wallet.isConnected ? `Renew now for ${formatDuration(block)}` : 'Connect to renew'}
             </Button>
           </div>
         </div>

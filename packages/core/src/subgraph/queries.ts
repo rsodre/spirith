@@ -194,6 +194,24 @@ export async function fetchNames(
   return data.names.map(parseName);
 }
 
+/** Registered names owned by `owner`, soonest expiry first. */
+export async function fetchNamesOwnedBy(
+  config: SubgraphConfig,
+  owner: Address,
+  opts: Pick<NamesQuery, 'first' | 'skip'> = {},
+): Promise<readonly SubgraphName[]> {
+  const data = await querySubgraph<{ names: WireName[] }>(
+    config,
+    `query Owned($owner: Bytes!, $first: Int!, $skip: Int!) {
+      names(where: { owner: $owner, status: Registered }, orderBy: expiry, orderDirection: asc, first: $first, skip: $skip) {
+        ${NAME_FIELDS}
+      }
+    }`,
+    { owner: owner.toLowerCase(), first: opts.first ?? 100, skip: opts.skip ?? 0 },
+  );
+  return data.names.map(parseName);
+}
+
 /** Names expiring within `withinSeconds` of `now`, including names already in grace. */
 export function fetchNamesAtRisk(
   config: SubgraphConfig,

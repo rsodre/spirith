@@ -20,6 +20,7 @@ const NAV_GROUPS = [
     { href: '/endowed', label: 'Endowed' },
     { href: '/expiring', label: 'Expiring' },
     { href: '/graveyard', label: 'Graveyard' },
+    { href: '/patron', label: 'Patron' },
   ],
   [
     { href: '/about', label: 'About' },

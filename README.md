@@ -59,7 +59,9 @@ in the same package renews any endowed name the vault allows and collects the ti
 The dashboard (`apps/web`) is a Next.js app over the subgraph and the chain. The front page
 counts the names dying this month; behind it are the register of expiring names with the value
 at risk by price tier, the endowed names with their funded-until ranges, the graveyard, an
-about page, the roadmap and a developers page with the addresses and the MCP setup. Each name has a card with the endow flow (100 test USDC are minted for a
+about page, the roadmap, a developers page with the addresses and the MCP setup, and a
+patron page with your endowments and names, where a new name can be registered on the
+ENSv2 registrar. Each name has a card with the endow flow (100 test USDC are minted for a
 wallet that is short), a "renew now" button anyone can press once the name is
 inside its 30-day lead window, and the owner's one-time step that lets the vault publish the
 funding record. It needs a browser wallet on Sepolia; nothing else. Endowments on Sepolia are

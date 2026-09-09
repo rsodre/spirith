@@ -12,6 +12,7 @@ import { useWallet } from '@/hooks/chain/use-wallet';
 import { useName } from '@/hooks/queries/use-name';
 import { useNow } from '@/hooks/use-now';
 import { useSlugs } from '@/hooks/use-slugs';
+import { ZERO_ADDRESS } from '@/hooks/chain/contracts';
 import { ensExplorerName } from '@/lib/chain';
 import { formatDate, formatDays, fundedRange, yearsUntil } from '@/lib/format';
 import { EndowmentPanel } from './EndowmentPanel';
@@ -32,7 +33,10 @@ export function NamePage() {
   const { owner } = useNameOwner(label);
   const { resolver } = useNameResolver(label);
   const { isRenewable } = useIsRenewable(label);
-  const { runway } = useVaultRunway(label);
+  const { runway: runwayRead, error: runwayError } = useVaultRunway(label);
+  // `runwayOf` reverts for a name the registrar cannot price (a v1 reservation, an invalid
+  // label); null tells the panels "no runway" so nothing spins forever.
+  const runway = runwayError ? null : runwayRead;
   const { constants } = useVaultConstants();
   const { records } = useSpirithRecords(label, resolver);
 
@@ -41,7 +45,8 @@ export function NamePage() {
   const registered = expiry !== undefined && expiry > 0n;
 
   const live = useMemo(() => {
-    if (!registered || !runway) return undefined;
+    if (!registered || runway === undefined) return undefined;
+    if (runway === null) return liveness({ expiry, now, endowed: false });
     return liveness({
       expiry,
       now,
@@ -53,11 +58,15 @@ export function NamePage() {
   // Honest UI rule (spec §4.4): a range, collapsing to one date when the rate range does.
   const funded = useMemo(
     () =>
-      registered && runway && endowed && runway.fundedUntilLow > expiry
+      registered && runway != null && endowed && runway.fundedUntilLow > expiry
         ? fundedRange(runway.fundedUntilLow, runway.fundedUntilHigh, expiry)
         : undefined,
     [registered, runway, endowed, expiry],
   );
+
+  // A v1 name mirrored into the beta registry: reserved, no owner, not renewable through the
+  // v2 registrar (spec §2). Its owner has to migrate it before anyone can endow it.
+  const v1Reserved = registered && owner === ZERO_ADDRESS && isRenewable === false;
 
   const isOwner = owner !== undefined && wallet.address !== undefined && owner === wallet.address;
 
@@ -125,6 +134,7 @@ export function NamePage() {
             runway={runway}
             constants={constants}
             renewable={isRenewable}
+            v1Reserved={v1Reserved}
             wallet={wallet}
           />
         </div>
@@ -136,6 +146,7 @@ export function NamePage() {
             constants={constants}
             endowment={name?.endowmentDetail ?? null}
             renewable={isRenewable}
+            v1Reserved={v1Reserved}
             wallet={wallet}
           />
           <PatronPanel label={label} now={now} constants={constants} wallet={wallet} />

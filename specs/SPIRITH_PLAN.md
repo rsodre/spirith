@@ -270,7 +270,11 @@ register worst-first with read-time bands, unfunded yearly renewals by tier, nam
 `/endowed` (live endowments, one multicall for the runways), `/about`, `/roadmap` (the spec
 file read at build time, handover cross-references stripped, rendered with react-markdown),
 `/developers` (repository, contract addresses from core's registries, subgraph, MCP tools and
-`.mcp.json`, keeper), `/name/[label]` (facts from the chain, the funding
+`.mcp.json`, keeper), `/patron` (the wallet's endowments and owned names from the subgraph,
+claims from the vault, both soonest expiry first; one name form that opens a registered name's
+card or registers an available one straight on the ENSv2 registrar as
+commit → minimum age → mint if short → approve → register, mirroring `RegisterName.s.sol`,
+with Spirith as referrer), `/name/[label]` (facts from the chain, the funding
 record read from the resolver, endowment with the funded-until range from `runwayOf`, endow
 form with mint → approve → endow, renew panel gated on the vault's own trigger and showing price
 and tip, owner panel running the `PrepareName` flow from the browser, patron panel with notice

@@ -48,6 +48,8 @@ export interface TxRunner {
   ): Promise<SendResult<unknown>>;
   /** Wait until the subgraph has indexed `block`. Resolves false when it stays behind. */
   indexing(block: bigint): Promise<boolean>;
+  /** Hold for `seconds`, counting down on the toast; for a commit-reveal's minimum age. */
+  pause(step: string, seconds: number): Promise<void>;
 }
 
 export interface ChainMutationOptions<TArgs, TResult> {
@@ -102,6 +104,12 @@ export function useChainMutation<TArgs, TResult>(
           const receipt = await waitForTransactionReceipt(wagmiConfig, { hash });
           if (receipt.status === 'reverted') throw new Error(`${step} reverted (${hash})`);
           return { hash, receipt, result };
+        },
+        async pause(step, seconds) {
+          for (let left = seconds; left > 0; left -= 1) {
+            show(`${step} — ${left}s`);
+            await sleep(1_000);
+          }
         },
         async indexing(block) {
           for (let i = 0; i < INDEXING_MAX_POLLS; i++) {

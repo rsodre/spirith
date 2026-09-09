@@ -78,6 +78,11 @@ export function HomePage() {
           text="Names past their grace period. Still addressed, no longer reachable."
         />
         <Door
+          href="/patron"
+          title="Patron"
+          text="Your endowments and your names; find a name to endow, or register a new one."
+        />
+        <Door
           href="/about"
           title="About"
           text="How the vault works, what it can and cannot do, and what it costs to make a name immortal."

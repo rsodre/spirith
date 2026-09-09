@@ -3,20 +3,26 @@
 import { type FormEvent, useCallback, useMemo, useState } from 'react';
 import { type SubgraphEndowment, tierOf } from '@spirith/core';
 import { AddressLink } from '@/components/AddressLink';
+import { ExternalLink } from '@/components/ExternalLink';
 import { Button, Field, Panel, Spinner } from '@/components/ui';
 import { useEndowFlow } from '@/hooks/chain/use-endow-flow';
 import type { VaultConstants, VaultRunway } from '@/hooks/chain/use-vault';
 import type { Wallet } from '@/hooks/chain/use-wallet';
 import { formatDuration, formatRate, formatUsdc, fundedRange, parseUsdc } from '@/lib/format';
+import { WarningIcon } from '@/icons';
+import { ensManagerName } from '@/lib/links';
 import { projectFunding } from '@/lib/projection';
 
 interface Props {
   label: string;
   expiry: bigint | undefined;
-  runway: VaultRunway | undefined;
+  /** undefined while loading; null when the vault cannot price the name. */
+  runway: VaultRunway | null | undefined;
   constants: VaultConstants | undefined;
   endowment: SubgraphEndowment | null;
   renewable: boolean | undefined;
+  /** An ENSv1 name mirrored into the beta; endowable only once its owner migrates it. */
+  v1Reserved: boolean;
   wallet: Wallet;
 }
 
@@ -29,17 +35,19 @@ export function EndowmentPanel({
   constants,
   endowment,
   renewable,
+  v1Reserved,
   wallet,
 }: Props) {
   const endowed = (runway?.assets ?? 0n) > 0n;
   const range = useMemo(
     () =>
-      runway && expiry !== undefined && endowed
+      runway != null && expiry !== undefined && endowed
         ? fundedRange(runway.fundedUntilLow, runway.fundedUntilHigh, expiry)
         : undefined,
     [runway, expiry, endowed],
   );
-  const room = constants && runway ? constants.depositCap - runway.assets : undefined;
+  const room =
+    constants && runway !== undefined ? constants.depositCap - (runway?.assets ?? 0n) : undefined;
 
   return (
     <Panel
@@ -52,7 +60,7 @@ export function EndowmentPanel({
     >
       {runway === undefined ? (
         <Spinner />
-      ) : !endowed ? (
+      ) : runway === null || !endowed ? (
         <p className="text-muted">
           Nothing is earmarked for this name. Anyone can change that: the deposit stays this name's
           own, and only ever leaves as a renewal payment or back to whoever put it in.
@@ -96,11 +104,14 @@ export function EndowmentPanel({
         </div>
       )}
       <EndowForm
+        // The flag settles after the owner and registrar reads; remount so the default follows.
+        key={v1Reserved ? 'v1' : 'v2'}
         label={label}
         room={room}
         renewable={renewable}
+        v1Reserved={v1Reserved}
         wallet={wallet}
-        assets={runway?.assets}
+        assets={runway === undefined ? undefined : (runway?.assets ?? 0n)}
         expiry={expiry}
         constants={constants}
       />
@@ -114,6 +125,7 @@ function EndowForm({
   label,
   room,
   renewable,
+  v1Reserved,
   wallet,
   assets,
   expiry,
@@ -122,12 +134,14 @@ function EndowForm({
   label: string;
   room: bigint | undefined;
   renewable: boolean | undefined;
+  v1Reserved: boolean;
   wallet: Wallet;
   assets: bigint | undefined;
   expiry: bigint | undefined;
   constants: VaultConstants | undefined;
 }) {
-  const [text, setText] = useState('25');
+  // Nothing to suggest for a name that cannot take a deposit.
+  const [text, setText] = useState(v1Reserved ? '' : '25');
   const [error, setError] = useState<string | undefined>();
   const endow = useEndowFlow(label);
 
@@ -174,15 +188,29 @@ function EndowForm({
 
   const disabled = renewable !== true || (room !== undefined && room <= 0n);
   const hint =
-    renewable === undefined
-      ? 'Checking the registrar.'
-      : !renewable
-        ? 'This name cannot be renewed, so it cannot be endowed.'
-        : room === undefined
-          ? '100 test USDC are minted for you if you are short.'
-          : room <= 0n
-            ? 'This name is at the testnet cap.'
-            : `Room under the cap: ${formatUsdc(room)} USDC. 100 test USDC are minted for you if you are short.`;
+    renewable === undefined ? (
+      'Checking the registrar.'
+    ) : v1Reserved ? (
+      <span className="inline-flex items-start gap-1.5 text-oxide">
+        <WarningIcon size="sm" className="mt-0.5 shrink-0" />
+        <span>
+          {label}.eth is an ENSv1 name mirrored into ENSv2 and cannot be endowed until its owner
+          migrates it.{' '}
+          <ExternalLink href={ensManagerName(label)} className="text-oxide">
+            Migrate it in the ENS manager
+          </ExternalLink>
+          .
+        </span>
+      </span>
+    ) : !renewable ? (
+      'This name cannot be renewed, so it cannot be endowed.'
+    ) : room === undefined ? (
+      '100 test USDC are minted for you if you are short.'
+    ) : room <= 0n ? (
+      'This name is at the testnet cap.'
+    ) : (
+      `Room under the cap: ${formatUsdc(room)} USDC. 100 test USDC are minted for you if you are short.`
+    );
 
   return (
     <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-3 border-line border-t pt-5">
