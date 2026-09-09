@@ -23,10 +23,12 @@ Each is reversible today and expensive later. Veto now or they stand.
 | Agent | Spirith MCP server in `packages/agent`, stdio transport, querying the Studio endpoint | → HANDOVER §6: hosted Subgraph MCP cannot reach Sepolia |
 | Keeper | TypeScript CLI in `packages/agent` (`spirith-keeper`), viem, reads the subgraph, sends `renew()` | Shares the subgraph client and cadence code with the MCP tools; Foundry scripts stay deploy-only |
 | Address registry | Foundry deploy script writes `packages/core/deployments/sepolia.json`; `packages/core` exports `{address, abi}` per contract from that file plus `contracts/out` | One source for web, agent, keeper and subgraph manifest → `web3-chain-layer` |
-| Frontend stack | Next.js 15 App Router, React 19, Tailwind 4, Biome, wagmi 2 + viem 2 + ConnectKit, TanStack Query | Skill defaults (`nextjs`, `coding-style`, `web3-chain-layer`) |
+| Frontend stack | Next.js 16 App Router, React 19, Tailwind 4, Biome, wagmi 2 + viem 2 + ConnectKit 1.9, TanStack Query 5 | Skill defaults (`nextjs`, `coding-style`, `web3-chain-layer`); wagmi stays on 2.x because ConnectKit caps it there, and its React 18 peer warning is accepted (decided 2026-09-09) |
+| Web reads | Subgraph through `api/query/*` route handlers + one react-query hook each, bigint as tagged JSON; chain through bare wagmi hooks; `@spirith/core` from its built `dist` | The Studio URL stays server-side; wagmi is its own cache; Turbopack cannot follow core's `.js`-suffixed source imports (decided 2026-09-09) |
+| Web fonts | Newsreader (titles, prose) and IBM Plex Sans (UI), self-hosted by `next/font` | One serif with a real italic for the register voice, one sans with tabular figures for the ledger |
 | Subgraph | One subgraph, three data sources (ETHRegistrar, ETHRegistry, SpirithVault), deployed to Subgraph Studio on `sepolia` | Studio is the only option for Sepolia; three sources keep name and endowment in one schema |
 | Liveness score | Stored as inputs (expiry, tier, endowed, runway) and banded at read time in `packages/core` | A time-dependent field in an entity is stale the block after it is written |
-| Dev ports | web `3000` user / `3100` agent | → `agent-workflow` |
+| Dev ports | web `3000` user / `3100` agent, the agent building into `.next-claude` | → `agent-workflow`; two `next dev` on one `.next/` race each other |
 
 ---
 
@@ -69,7 +71,7 @@ Package import rules (guardrails once the code exists):
 
 - `core` imports nothing from the workspace. Zero runtime deps beyond `viem`.
 - `agent` imports `core`. Never imports `web`. Must run under Node with no browser API.
-- `web` imports `core`. Chain reads and writes go through wagmi hooks in `hooks/chain/`, never through API routes.
+- `web` imports `core` (from `dist`; `pnpm check` builds it first). Chain reads and writes go through wagmi hooks in `hooks/chain/`, never through API routes; subgraph reads go through `api/query/` routes, never from the browser.
 - `subgraph` copies ABIs from `core` at build time; nothing imports `subgraph`.
 - `contracts` is consumed only through its `out/` artifacts and `deployments/*.json`.
 
@@ -247,7 +249,7 @@ within 30 days; spirithbeta.eth is endowed with 22.73 USDC, runway at least 9 ye
 renew for 3 years when due, with the four blocks compared. The session also pointed out that no
 endowed name reaches the lead window before the deadline; see the risk table.
 
-### Phase 6 — Dashboard
+### Phase 6 ☑️ — Dashboard
 
 Pages, each a folder under `components/pages/`:
 
@@ -259,6 +261,34 @@ Pages, each a folder under `components/pages/`:
 - Banner: "unaudited testnet software, deposits capped at 100 test USDC, yield on testnet is simulated".
 
 **Gate:** The 90-second demo script (→ HANDOVER §9.5) runs end to end on Sepolia from a clean browser profile against `pnpm dev`, twice.
+
+Landed 2026-09-09. `apps/web` (`@spirith/web`): pages `/` (scoreboard: the count of names
+expiring within 28 days as the headline, the register worst-first with read-time bands, unfunded
+yearly renewals by tier, namespace totals), `/name/[label]` (facts from the chain, the funding
+record read from the resolver, endowment with the funded-until range from `runwayOf`, endow
+form with mint → approve → endow, renew panel gated on the vault's own trigger and showing price
+and tip, owner panel running the `PrepareName` flow from the browser, patron panel with notice
+and withdrawal, renewal history), `/graveyard` (lapsed names plus the in-grace list), `/bench`
+(unlinked). Chain layer: `hooks/chain/contracts.ts` over core's registry, one hook per
+entrypoint, `useChainMutation` (simulate → send → receipt → subgraph `_meta.block` wait, one
+toast morphing at one id). Observed against live Sepolia: 90 names within 28 days, 26 in grace,
+4,768 USDC of yearly renewals unfunded; spirithbeta's card shows 22.73 USDC, funded through
+2035 at 4%, record `funded until 2 Oct 2035, 1 patron`, the keeper's six-year renewal with its
+0.27 tip. `pnpm check` and `next build` green.
+
+#### Outstanding
+
+- **The gate is not observed.** Every write flow (endow, renew, owner record, withdraw) is built
+  and simulates against the ABI, but none has been run from a browser wallet; the Chrome
+  extension was unavailable in the build session. Run the demo script twice with a wallet on
+  Sepolia, then tick the phase.
+- No name reaches the lead window before the deadline (risk table): register a fresh 28-day
+  name with `RegisterName.s.sol` for the video; it is renewable from day one. The graveyard is
+  empty until 2026-09-24 (the registry opened 2026-07-30 with 28-day minimums), which is why the
+  page also lists the names in grace.
+- Storybook (`coding-style` § Storybook) is deferred past the deadline; the `ui/` primitives
+  have no stories.
+- Without `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` only injected wallets connect; fine for the demo.
 
 ### Phase 7 — Submission, not later than Sun 2026-09-13 10:00 EDT
 
@@ -278,7 +308,8 @@ Pages, each a folder under `components/pages/`:
 |---|---|
 | `pnpm check` | lint + typecheck + test across the workspace, plus `forge test` |
 | `pnpm build` | core → agent → web, in order |
-| `pnpm dev` / `pnpm dev:claude` | web on 3000 (user) / 3100 (agent) |
+| `pnpm dev` / `pnpm dev:claude` | web on 3000 (user) / 3100 (agent, `.next-claude`) |
+| `pnpm --filter @spirith/web build` | `next build` |
 | `pnpm --filter @spirith/core test` | pricing and runway pins |
 | `pnpm --filter @spirith/agent test` | optimiser |
 | `pnpm --filter @spirith/agent mcp` | start the MCP server on stdio |

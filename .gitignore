@@ -159,3 +159,7 @@ packages/subgraph/generated/
 packages/subgraph/build/
 packages/subgraph/subgraph.yaml
 packages/subgraph/src/config.ts
+
+# Next.js: the agent dev server (`dev:claude`) builds here, never in the user's .next/
+.next-claude
+apps/web/next-env.d.ts

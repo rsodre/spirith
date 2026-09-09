@@ -46,16 +46,16 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-Phases 0–5 landed (2026-09-08); `specs/SPIRITH_PLAN.md`
-has the per-phase record. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
+Phases 0–6 landed (2026-09-09); `specs/SPIRITH_PLAN.md`
+has the per-phase record and what Phase 6 still owes. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
 architecture, decisions and deadline; the plan holds the phases, gates and project structure.
 Read both in full before building anything. When this file and a spec disagree, the spec wins;
 update this file.
 
 Layout: pnpm workspace with `contracts/` (Foundry), `packages/core` (chain config, address+ABI
 registry, pricing, runway and liveness math, subgraph query client) `packages/subgraph`
-(The Graph mappings, live on Subgraph Studio as `spirith-sepolia`) and `packages/agent` (keeper
-CLI, cadence optimiser, MCP server) in place; `apps/web` (Next.js) arrives in Phase 6. Node 23, pnpm 10
+(The Graph mappings, live on Subgraph Studio as `spirith-sepolia`), `packages/agent` (keeper
+CLI, cadence optimiser, MCP server) and `apps/web` (Next.js 16 dashboard). Node 23, pnpm 10
 and Foundry 1.8.1 are installed; `forge` lives in `~/.foundry/bin`, which must be on `PATH` or
 every contracts script fails with "command not found".
 
@@ -63,7 +63,10 @@ every contracts script fails with "command not found".
 
 | Command | Does |
 |---|---|
-| `pnpm check` | the gate: Biome + `forge fmt --check`, `tsc --noEmit`, vitest, `forge test` |
+| `pnpm check` | the gate: Biome + `forge fmt --check`, core build + `tsc --noEmit`, vitest, `forge test` |
+| `pnpm dev` | the user's dashboard dev server on :3000; the agent never runs this |
+| `pnpm dev:claude` | the agent's dashboard dev server on :3100, building into `apps/web/.next-claude` |
+| `pnpm --filter @spirith/web build` | production build of the dashboard (`next build`) |
 | `pnpm test:fork:sepolia` | contracts fork tests against live Sepolia (`SEPOLIA_RPC_URL` in `.env`) |
 | `pnpm test:fork:mainnet` | ERC-4626 adapter over Aave on a mainnet fork (`MAINNET_RPC_URL` in `.env`) |
 | `pnpm --filter @spirith/agent keeper once --label <l> [--dry-run]` | one keeper attempt; simulates without `KEEPER_PRIVATE_KEY` |
@@ -87,6 +90,14 @@ mappings are AssemblyScript: `==` for strings, `BigInt` from graph-ts, no closur
 In `packages/agent`, tools are plain functions over `ToolContext` (subgraph config + `ChainReader`);
 `mcp.ts` only maps them, so tests use fakes and never the protocol. The MCP server must write
 nothing to stdout except protocol; log to stderr.
+In `apps/web`, `@spirith/core` is consumed from its built `dist` (rebuild core after editing it;
+`pnpm check` does), and `next.config.ts` loads the root `.env`, the only env profile. Subgraph
+reads go through `api/query/*` route handlers and one hook each in `hooks/queries/`, crossing
+the boundary as bigint-tagged JSON (`lib/json.ts`); chain reads and writes go through wagmi hooks
+in `hooks/chain/`, never through a route. Every write hook is built on `useChainMutation`
+(simulate → send → receipt → indexing wait, one toast per call). Addresses and ABIs come from
+core's registry via `hooks/chain/contracts.ts`; no literal anywhere else. `/bench` is the
+unlinked contract bench. Next's own `AGENTS.md`/`CLAUDE.md` generation is off (`agentRules`).
 Sepolia addresses live in exactly two mirrored places, `contracts/script/Config.s.sol` and
 `packages/core/src/ens/addresses.ts`; change both or neither.
 

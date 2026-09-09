@@ -13,9 +13,12 @@
       "!**/node_modules/**",
       "!**/dist/**",
       "!**/.next/**",
-      // Framework-owned files: Next.js rewrites these on build.
+      // Framework-owned files: Next.js rewrites these on build; Claude Code rewrites its own
+      // local settings whenever a permission is granted.
       "!**/tsconfig.json",
       "!**/next-env.d.ts",
+      "!**/.next-claude/**",
+      "!**/.claude/settings.local.json",
       // Generated / vendored data: not hand-edited, so not ours to format.
       "!**/src/generated/**",
       "!**/artifacts/**",

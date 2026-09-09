@@ -8,14 +8,16 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "build": "pnpm --filter @spirith/core build && pnpm --filter @spirith/agent build",
+    "build": "pnpm --filter @spirith/core build && pnpm --filter @spirith/agent build && pnpm --filter @spirith/web build",
+    "dev": "pnpm --filter @spirith/web dev",
+    "dev:claude": "pnpm --filter @spirith/web dev:claude",
     "lint": "biome check . && pnpm --filter @spirith/contracts lint",
     "format": "biome format --write . && pnpm --filter @spirith/contracts format",
-    "check-types": "pnpm -r --if-present check-types",
+    "check-types": "pnpm --filter @spirith/core build && pnpm -r --if-present check-types",
     "test": "pnpm -r --if-present test",
     "test:fork:sepolia": "pnpm --filter @spirith/contracts test:fork:sepolia",
-    "check": "pnpm lint && pnpm check-types && pnpm test",
-    "test:fork:mainnet": "pnpm --filter @spirith/contracts test:fork:mainnet"
+    "test:fork:mainnet": "pnpm --filter @spirith/contracts test:fork:mainnet",
+    "check": "pnpm lint && pnpm check-types && pnpm test"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

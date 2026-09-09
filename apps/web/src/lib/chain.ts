@@ -1,0 +1,34 @@
+import { type ChainConfig, type ChainName, chainConfig, isChainName } from '@spirith/core';
+import type { Address, Hex } from 'viem';
+
+// The one place the web app reads chain environment. One network per deploy, chosen by
+// profile; everything chain-dependent imports from here.
+const name = process.env.NEXT_PUBLIC_CHAIN ?? 'sepolia';
+if (!isChainName(name)) throw new Error(`NEXT_PUBLIC_CHAIN: unknown chain ${name}`);
+
+export const APP_CHAIN: ChainConfig = chainConfig(name);
+
+const PUBLIC_RPC: Readonly<Record<ChainName, string>> = {
+  sepolia: 'https://ethereum-sepolia-rpc.publicnode.com',
+};
+
+/** Browser RPC. viem's built-in Sepolia endpoint refuses unkeyed calls, so the fallback is
+ * the public node the rest of the workspace uses. */
+export const RPC_URL: string = process.env.NEXT_PUBLIC_RPC_URL || PUBLIC_RPC[APP_CHAIN.name];
+
+/** Without it only injected wallets connect; ConnectKit says so in its own console line. */
+export const WALLETCONNECT_PROJECT_ID: string | undefined =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || undefined;
+
+export function explorerAddress(address: Address): string {
+  return `${APP_CHAIN.explorerUrl}/address/${address}`;
+}
+
+export function explorerTx(hash: Hex): string {
+  return `${APP_CHAIN.explorerUrl}/tx/${hash}`;
+}
+
+/** ENS beta explorer page for a `.eth` name. */
+export function ensExplorerName(label: string): string {
+  return `https://explorer.ens.dev/name/${label}.eth`;
+}

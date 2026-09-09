@@ -31,9 +31,9 @@ The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMA
 
 ## Status
 
-Phase 5 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
-wallet, the subgraph indexes the whole Sepolia namespace, and an MCP server answers questions
-about it. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
+Phase 6 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
+wallet, the subgraph indexes the whole Sepolia namespace, an MCP server answers questions
+about it, and a dashboard shows it all. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
 
 | Contract | Address |
 |---|---|
@@ -56,7 +56,14 @@ risk, a name's runway, the optimal renewal cadence against ENSv2's duration disc
 patron's portfolio health, and a rescue proposal with the exact deposit to make. A keeper CLI
 in the same package renews any endowed name the vault allows and collects the tip.
 
-Nothing is audited. The dashboard is not built yet.
+The dashboard (`apps/web`) is a Next.js app over the subgraph and the chain: a scoreboard of
+the names dying this month with the value at risk by price tier, a card per name with its
+funded-until range, the endow flow (test USDC is minted for you), a "renew now" button anyone
+can press once the name is inside its 30-day lead window, the owner's one-time step that lets
+the vault publish the funding record, and the graveyard of lapsed names. It needs a browser
+wallet on Sepolia; nothing else.
+
+Nothing is audited.
 
 ## AI usage
 
@@ -88,6 +95,7 @@ pnpm check                  # lint, typecheck, unit tests (TypeScript and Solidi
 pnpm test:fork:sepolia      # ENSv2 interfaces and the full demo path against live Sepolia
 pnpm test:fork:mainnet      # real yield from Aave on a mainnet fork (needs MAINNET_RPC_URL)
 pnpm --filter @spirith/agent keeper once --label <name> --dry-run   # what a keeper would do
+pnpm dev                    # the dashboard on http://localhost:3000 (reads the root .env)
 ```
 
 Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is
@@ -141,6 +149,7 @@ pnpm --filter @spirith/agent keeper watch --interval 300
   pricing, runway and liveness math, the subgraph query client
 - `packages/subgraph` — The Graph subgraph: schema, manifest template and mappings
 - `packages/agent` — the keeper CLI, the cadence optimiser and the Spirith MCP server
+- `apps/web` — the Next.js dashboard: scoreboard, name cards, endow and renew flows, graveyard
 - `specs/` — the project handover and the build plan
 - `CLAUDE.md`, `AGENTS.md` — guidance for coding agents
 
