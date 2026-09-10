@@ -13,7 +13,7 @@ import { useName } from '@/hooks/queries/use-name';
 import { useNow } from '@/hooks/use-now';
 import { useSlugs } from '@/hooks/use-slugs';
 import { ZERO_ADDRESS } from '@/hooks/chain/contracts';
-import { ensExplorerName } from '@/lib/chain';
+import { ENS_EXPLORER_HOST, ensExplorerName } from '@/lib/links';
 import { formatDate, formatDays, fundedRange, yearsUntil } from '@/lib/format';
 import { EndowmentPanel } from './EndowmentPanel';
 import { NameFacts } from './NameFacts';
@@ -99,7 +99,7 @@ export function NamePage() {
                       : `lapsed on ${formatDate(expiry + GRACE_PERIOD_SECONDS)}`}
               </span>
               <ExternalLink href={ensExplorerName(label)} className="text-base text-muted">
-                explorer.ens.dev
+                {ENS_EXPLORER_HOST}
               </ExternalLink>
             </>
           )}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useNamespace } from '@/hooks/queries/use-namespace';
 import { useDyingCount } from '@/hooks/use-dying-count';
+import { APP_ENV } from '@/lib/chain';
 
 // The front door: one live sentence, the problem statement verbatim (HANDOVER §1), and the
 // way in to each register. Nothing here is a control; every number is a link.
@@ -28,7 +29,7 @@ export function HomePage() {
         </h1>
         <p className="mt-5 font-title text-xl leading-relaxed text-muted">
           {dying.error || dying.isLoading
-            ? 'Every .eth name on the ENSv2 Sepolia beta, read from the chain.'
+            ? `Every .eth name on ${APP_ENV.title}, read from the chain.`
             : `${dying.grace} of them have already expired and are living out their 28 days of grace. Deposit once, and a name never joins them.`}
         </p>
       </section>

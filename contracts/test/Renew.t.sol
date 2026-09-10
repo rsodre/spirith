@@ -214,6 +214,24 @@ contract RenewTest is Test {
         assertLt(gasBefore - gasleft(), 1_500_000, "stipend bounded the damage");
     }
 
+    function test_record_legacyResolverGenerationIsWrittenByNode() public {
+        resolver.setLegacy(true);
+        _endow(50e6);
+        assertEq(resolver.text(vault.node(NAME), "spirith.patrons"), "1");
+        vm.prank(keeper);
+        vault.renew(NAME, 6 * Y);
+        assertGt(bytes(resolver.text(vault.node(NAME), "spirith.funded-until")).length, 0);
+    }
+
+    function test_record_legacyGasBurningResolverCannotBlockRenewal() public {
+        resolver.setLegacy(true);
+        resolver.setBurnAllGas(true);
+        _endow(50e6);
+        uint256 gasBefore = gasleft();
+        vault.renew(NAME, 6 * Y);
+        assertLt(gasBefore - gasleft(), 1_500_000, "stipend bounded the damage");
+    }
+
     function test_record_noResolverIsFine() public {
         registrar.register(NAME, uint64(block.timestamp) + 20 days, address(0));
         _endow(50e6);

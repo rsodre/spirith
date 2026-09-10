@@ -1,9 +1,17 @@
-import type { Address } from 'viem';
-import type { ChainName } from '../chains.js';
+import { getAddress, type Address } from 'viem';
+import type { EnvName } from '../environment.js';
+import hackathon from '../../deployments/ens/hackathon.json' with { type: 'json' };
+import sepolia from '../../deployments/ens/sepolia.json' with { type: 'json' };
 
-// ENSv2 Sepolia beta (spec §2), verified live 2026-09-05 through the fixed Universal Resolver
-// entry point. Every other Sepolia set in the namechain repo is stale; never copy from there.
+// One ENSv2 contract set per environment, from the JSON files under deployments/ens/ (spec §2).
+// Those files are the single source: the subgraph's prepare script and the Foundry scripts read
+// the same JSON, so an address changes in one place or nowhere. Both Sepolia sets were verified
+// live through their own Universal Resolver entry point; every other Sepolia set in the
+// namechain repo is stale. ENSv2 has no mainnet deployment yet, so `mainnet` has no entry.
 export interface EnsDeployment {
+  readonly chainId: number;
+  /** Creation blocks of the two contracts the subgraph indexes. */
+  readonly startBlock: { readonly ethRegistry: number; readonly ethRegistrar: number };
   readonly ethRegistrar: Address;
   readonly ethRegistry: Address;
   readonly rootRegistry: Address;
@@ -18,19 +26,35 @@ export interface EnsDeployment {
   readonly paymentBeneficiary: Address;
 }
 
-export const ENS_DEPLOYMENTS: Readonly<Record<ChainName, EnsDeployment>> = {
-  sepolia: {
-    ethRegistrar: '0xa88553F454b77203B0D036A05c894d555EAAa2Cc',
-    ethRegistry: '0xBDC85dD5b15D7ecb354cd7cb6f2c50b4f2c4F0E2',
-    rootRegistry: '0x8115186E8f2E0B0281e86ab91f0f48Ba90364354',
-    rentPriceOracle: '0x8914b66260EB8C4fff795650c3AE8Cd335958987',
-    mockUsdc: '0x768F42455A2D082E23ceeF7d51e5787C82d67a39',
-    mockDai: '0x5472C5725A00B7bA11F0794A79D08ade6F4683bD',
-    circleUsdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-    permissionedResolverImpl: '0x9EAe5C2730a7dD16BDD1DeE6421a1B91e3B0365e',
-    verifiableFactory: '0x10dC6333CDFe1FCEf624c6e0a8221b91804Cd7ef',
-    universalResolver: '0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe',
-    publicResolverV2: '0xe7B9A25607E02da8145E4eB1836CA539e53F11f7',
-    paymentBeneficiary: '0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3',
-  },
+type RawEnsDeployment = typeof sepolia;
+
+function asDeployment(raw: RawEnsDeployment): EnsDeployment {
+  return {
+    chainId: raw.chainId,
+    startBlock: { ...raw.startBlock },
+    ethRegistrar: getAddress(raw.ethRegistrar),
+    ethRegistry: getAddress(raw.ethRegistry),
+    rootRegistry: getAddress(raw.rootRegistry),
+    rentPriceOracle: getAddress(raw.rentPriceOracle),
+    mockUsdc: getAddress(raw.mockUsdc),
+    mockDai: getAddress(raw.mockDai),
+    circleUsdc: getAddress(raw.circleUsdc),
+    permissionedResolverImpl: getAddress(raw.permissionedResolverImpl),
+    verifiableFactory: getAddress(raw.verifiableFactory),
+    universalResolver: getAddress(raw.universalResolver),
+    publicResolverV2: getAddress(raw.publicResolverV2),
+    paymentBeneficiary: getAddress(raw.paymentBeneficiary),
+  };
+}
+
+export const ENS_DEPLOYMENTS: Readonly<Partial<Record<EnvName, EnsDeployment>>> = {
+  hackathon: asDeployment(hackathon),
+  sepolia: asDeployment(sepolia),
 };
+
+/** The ENSv2 set of an environment; throws where ENSv2 is not deployed (mainnet, for now). */
+export function ensDeployment(env: EnvName): EnsDeployment {
+  const deployment = ENS_DEPLOYMENTS[env];
+  if (!deployment) throw new Error(`ENSv2 is not deployed on the ${env} environment`);
+  return deployment;
+}

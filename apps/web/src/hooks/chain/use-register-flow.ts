@@ -1,11 +1,9 @@
 'use client';
 
-import { ENS_DEPLOYMENTS } from '@spirith/core';
 import { type Hex, pad, toHex } from 'viem';
 import { readContract } from 'wagmi/actions';
-import { APP_CHAIN } from '@/lib/chain';
 import { wagmiConfig } from '@/lib/wagmi';
-import { REGISTRAR, USDC, VAULT, ZERO_ADDRESS } from './contracts';
+import { ENS, REGISTRAR, USDC, VAULT, ZERO_ADDRESS } from './contracts';
 import { useChainMutation } from './use-chain-mutation';
 import { TOPUP_USDC } from './use-endow-flow';
 
@@ -31,7 +29,7 @@ export function useRegisterFlow() {
   return useChainMutation<RegisterArgs, boolean>(
     'ETHRegistrar::register()',
     async (tx, { label, duration }) => {
-      const resolver = ENS_DEPLOYMENTS[APP_CHAIN.name].publicResolverV2;
+      const resolver = ENS.publicResolverV2;
       const secret = randomSecret();
       const [available, minAge] = await Promise.all([
         readContract(wagmiConfig, { ...REGISTRAR, functionName: 'isAvailable', args: [label] }),

@@ -5,6 +5,7 @@ import '@/styles/main.css';
 import { Banner } from '@/components/Banner';
 import { Header } from '@/components/Header';
 import { Providers } from '@/components/providers/providers';
+import { APP_ENV } from '@/lib/chain';
 
 const newsreader = Newsreader({
   subsets: ['latin'],
@@ -47,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <Banner />
           {children}
           <footer className="mx-auto w-full max-w-6xl px-6 py-10 text-sm text-muted">
-            Built for ETHGlobal ETHOnline 2026 on the ENSv2 Sepolia beta.
+            Built for ETHGlobal ETHOnline 2026 on {APP_ENV.title}.
           </footer>
         </Providers>
       </body>

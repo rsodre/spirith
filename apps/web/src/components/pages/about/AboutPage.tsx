@@ -7,7 +7,7 @@ export function AboutPage() {
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">
       <article className="max-w-3xl">
-        <h1 className="text-5xl md:text-6xl">Deposit once. Your ENS name renews itself.</h1>
+        <h1 className="text-5xl md:text-6xl">Deposit once. Your ENS name renews itself forever.</h1>
         <p className="mt-5 font-title text-xl leading-relaxed text-muted">
           Spirith is a non-custodial endowment for ENS names, built for ETHGlobal ETHOnline 2026 on
           the ENSv2 Sepolia beta.

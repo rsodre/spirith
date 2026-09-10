@@ -46,8 +46,8 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-Phases 0–6 landed (2026-09-09); `specs/SPIRITH_PLAN.md`
-has the per-phase record and what Phase 6 still owes. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
+Phases 0–6 landed (2026-09-09) and the whole stack moved to the ENSv2 hackathon deployment on
+2026-09-10; `specs/SPIRITH_PLAN.md` has the per-phase record and what Phase 6 still owes. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
 architecture, decisions and deadline; the plan holds the phases, gates and project structure.
 Read both in full before building anything. When this file and a spec disagree, the spec wins;
 update this file.
@@ -73,7 +73,7 @@ every contracts script fails with "command not found".
 | `pnpm --filter @spirith/core test` | pricing and runway pins only |
 | `forge test --match-test <name>` (in `contracts/`) | one Solidity test |
 | `forge script script/ProveRenew.s.sol ...` | renew a name straight on the registrar from a non-owner (Phase 0 proof) |
-| `forge script script/Deploy.s.sol ...` | deploy adapter + vault, write `packages/core/deployments/sepolia.json` |
+| `forge script script/Deploy.s.sol ...` | deploy adapter + vault against `SPIRITH_ENV`'s ENSv2 set, write `packages/core/deployments/<env>.json` |
 | `forge script script/{PrepareName,Endow,Renew}.s.sol ...` | owner resolver setup, endow, keeper renewal against the deployed vault (`LABEL=`) |
 | `pnpm --filter @spirith/core gen:abis` | refresh Spirith ABIs from `contracts/out` and regenerate `src/generated/` |
 | `pnpm --filter @spirith/subgraph build` | render manifest + ABIs from core, `graph codegen`, `graph build` (also runs in `pnpm check`) |
@@ -99,8 +99,20 @@ in `hooks/chain/`, never through a route. Every write hook is built on `useChain
 core's registry via `hooks/chain/contracts.ts`; no literal anywhere else. `/bench` is the
 unlinked contract bench. `/roadmap` renders `specs/SPIRITH_ROADMAP.md` at build time; edit the
 spec, never the page. Next's own `AGENTS.md`/`CLAUDE.md` generation is off (`agentRules`).
-Sepolia addresses live in exactly two mirrored places, `contracts/script/Config.s.sol` and
-`packages/core/src/ens/addresses.ts`; change both or neither.
+Everything runs against one *environment*: `hackathon` (ENS's dedicated ETHOnline 2026 set on
+Sepolia, the default and the submission target), `sepolia` (the ENSv2 beta; its registrar has the
+older `renew` signature, so its contracts are frozen at the 2026-09-09 vault) or `mainnet` (links
+only; no ENSv2 there yet).
+Core's `environment(name)` bundles the chain, the ENSv2 set, Spirith's deployment and the ENS app
+and explorer links for that set; `SPIRITH_ENV` selects it for forge scripts, the agent and the
+subgraph build, `NEXT_PUBLIC_ENV` for the web. ENS addresses live in exactly one place per
+environment, `packages/core/deployments/ens/<env>.json`, read by core, the subgraph's
+`prepare.mjs` and Foundry's `Config.load(vm)`; never type one anywhere else. Spirith's own
+addresses are `deployments/<env>.json`, written by `Deploy.s.sol`; a new environment also needs
+its import in `packages/core/src/spirith/registry.ts`. The two Sepolia sets are served by
+different apps (spec §2), so links and contracts switch together, never separately. The vault
+targets the struct `renew` and serves both PermissionedResolver generations by ERC-165 (spec §2);
+the Studio subgraph is one per chain, `spirith-sepolia`, with a version per environment.
 
 ## What Spirith is
 

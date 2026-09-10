@@ -1,0 +1,18 @@
+{
+  "chainId": 11155111,
+  "source": "https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta",
+  "verifiedOn": "2026-09-05",
+  "startBlock": { "ethRegistry": 11383897, "ethRegistrar": 11383914 },
+  "ethRegistrar": "0xa88553F454b77203B0D036A05c894d555EAAa2Cc",
+  "ethRegistry": "0xBDC85dD5b15D7ecb354cd7cb6f2c50b4f2c4F0E2",
+  "rootRegistry": "0x8115186E8f2E0B0281e86ab91f0f48Ba90364354",
+  "rentPriceOracle": "0x8914b66260EB8C4fff795650c3AE8Cd335958987",
+  "mockUsdc": "0x768F42455A2D082E23ceeF7d51e5787C82d67a39",
+  "mockDai": "0x5472C5725A00B7bA11F0794A79D08ade6F4683bD",
+  "circleUsdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  "permissionedResolverImpl": "0x9EAe5C2730a7dD16BDD1DeE6421a1B91e3B0365e",
+  "verifiableFactory": "0x10dC6333CDFe1FCEf624c6e0a8221b91804Cd7ef",
+  "universalResolver": "0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe",
+  "publicResolverV2": "0xe7B9A25607E02da8145E4eB1836CA539e53F11f7",
+  "paymentBeneficiary": "0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3"
+}

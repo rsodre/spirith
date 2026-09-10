@@ -1,6 +1,6 @@
 // Renders everything the subgraph takes from elsewhere so nothing here is hand-typed twice:
 // ABIs from @spirith/core's committed artifacts, the vault address and start block from the
-// deploy JSON, the ENS addresses from core's registry. Writes abis/, subgraph.yaml and
+// deploy JSON, the ENS addresses and start blocks from core's ENS deployment JSON. Writes abis/, subgraph.yaml and
 // src/config.ts, all git-ignored. `subgraph.template.yaml` is the source of the manifest.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -19,22 +19,24 @@ for (const [group, name] of ABIS) {
   writeFileSync(join(root, 'abis', `${name}.json`), abi);
 }
 
-const deployment = JSON.parse(readFileSync(join(core, 'deployments', 'sepolia.json'), 'utf8'));
-// Mirrors packages/core/src/ens/addresses.ts (the TS module cannot be imported before a build).
-const addresses = readFileSync(join(core, 'src', 'ens', 'addresses.ts'), 'utf8');
-const ensAddress = key => {
-  const m = addresses.match(new RegExp(`${key}: '(0x[0-9a-fA-F]{40})'`));
-  if (!m) throw new Error(`address ${key} not found in core/src/ens/addresses.ts`);
-  return m[1];
-};
+// One environment per build (SPIRITH_ENV, default hackathon): its ENSv2 set and creation blocks
+// from core's deployments/ens/<env>.json, the vault from deployments/<env>.json.
+const env = process.env.SPIRITH_ENV ?? 'hackathon';
+const readJson = path => JSON.parse(readFileSync(path, 'utf8'));
+const ens = readJson(join(core, 'deployments', 'ens', `${env}.json`));
+const deployment = readJson(join(core, 'deployments', `${env}.json`));
+if (deployment.chainId !== ens.chainId)
+  throw new Error(`${env}: vault and ENS set are on different chains`);
+const NETWORKS = { 11155111: 'sepolia', 1: 'mainnet' };
+const network = NETWORKS[ens.chainId];
+if (!network) throw new Error(`no Graph network name for chain id ${ens.chainId}`);
 
-// Contract creation blocks on Sepolia, from Etherscan (2026-09-08); the registry precedes the
-// registrar by 17 blocks and both precede the first registration.
 const values = {
-  ethRegistrar: ensAddress('ethRegistrar'),
-  ethRegistrarStartBlock: 11383914,
-  ethRegistry: ensAddress('ethRegistry'),
-  ethRegistryStartBlock: 11383897,
+  network,
+  ethRegistrar: ens.ethRegistrar,
+  ethRegistrarStartBlock: ens.startBlock.ethRegistrar,
+  ethRegistry: ens.ethRegistry,
+  ethRegistryStartBlock: ens.startBlock.ethRegistry,
   spirithVault: deployment.spirithVault,
   spirithVaultStartBlock: deployment.block,
 };
@@ -56,4 +58,4 @@ export const SPIRITH_REFERRER = Bytes.fromHexString(
 );
 `;
 writeFileSync(join(root, 'src', 'config.ts'), config);
-console.log('subgraph: wrote abis/, subgraph.yaml, src/config.ts');
+console.log(`subgraph: wrote abis/, subgraph.yaml, src/config.ts for the ${env} environment`);

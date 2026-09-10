@@ -4,11 +4,18 @@ pragma solidity ^0.8.30;
 import {Script} from "forge-std/Script.sol";
 
 import {SpirithVault} from "../src/SpirithVault.sol";
+import {Config, EnsConfig} from "./Config.s.sol";
 
-/// @dev Reads the deployed vault from packages/core/deployments/sepolia.json.
+/// @dev A script over the environment's ENSv2 set and its deployed vault
+/// (packages/core/deployments/<env>.json).
 abstract contract Deployed is Script {
+    function ens() internal view returns (EnsConfig memory c) {
+        c = Config.load(vm);
+        Config.requireChain(c);
+    }
+
     function vault() internal view returns (SpirithVault) {
-        string memory json = vm.readFile("../packages/core/deployments/sepolia.json");
+        string memory json = vm.readFile(Config.spirithPath(vm));
         return SpirithVault(vm.parseJsonAddress(json, ".spirithVault"));
     }
 

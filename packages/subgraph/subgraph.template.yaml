@@ -10,7 +10,7 @@ indexerHints:
 dataSources:
   - kind: ethereum/contract
     name: ETHRegistry
-    network: sepolia
+    network: {{network}}
     source:
       address: '{{ethRegistry}}'
       abi: ETHRegistry
@@ -42,7 +42,7 @@ dataSources:
       file: ./src/registry.ts
   - kind: ethereum/contract
     name: ETHRegistrar
-    network: sepolia
+    network: {{network}}
     source:
       address: '{{ethRegistrar}}'
       abi: ETHRegistrar
@@ -66,7 +66,7 @@ dataSources:
       file: ./src/registrar.ts
   - kind: ethereum/contract
     name: SpirithVault
-    network: sepolia
+    network: {{network}}
     source:
       address: '{{spirithVault}}'
       abi: SpirithVault

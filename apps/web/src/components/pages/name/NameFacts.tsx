@@ -13,8 +13,7 @@ import { ExternalLink } from '@/components/ExternalLink';
 import { Spinner } from '@/components/ui';
 import { ZERO_ADDRESS } from '@/hooks/chain/contracts';
 import type { SpirithRecords } from '@/hooks/chain/use-resolver';
-import { ensExplorerName } from '@/lib/chain';
-import { ensManagerName } from '@/lib/links';
+import { ensExplorerName, ensManagerName } from '@/lib/links';
 import { formatDate, formatUsdc, tierLabel } from '@/lib/format';
 
 interface Props {

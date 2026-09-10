@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script, console} from "forge-std/Script.sol";
+import {console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IETHRegistrarRead} from "../src/interfaces/ens/IETHRegistrarRead.sol";
+import {RenewData} from "../src/interfaces/ens/IETHRenewer.sol";
 import {IMintableERC20} from "../src/interfaces/ens/IMintableERC20.sol";
 import {IPermissionedRegistryRead} from "../src/interfaces/ens/IPermissionedRegistryRead.sol";
-import {SepoliaConfig as C} from "./Config.s.sol";
+import {Config, EnsConfig} from "./Config.s.sol";
+import {Deployed} from "./Deployed.s.sol";
 
 /// @notice Phase 0 proof of path: an account that does NOT own `label` renews it with MockUSDC.
 ///
 ///   LABEL=<label> DURATION=<seconds, default 1 year> \
 ///   forge script script/ProveRenew.s.sol --rpc-url $SEPOLIA_RPC_URL \
 ///     --private-key $DEPLOYER_PRIVATE_KEY --broadcast
-contract ProveRenew is Script {
+contract ProveRenew is Deployed {
     function run() external {
         string memory label = vm.envString("LABEL");
-        uint64 duration = uint64(vm.envOr("DURATION", uint256(C.ONE_YEAR)));
-        require(block.chainid == C.CHAIN_ID, "sepolia only");
+        uint64 duration = uint64(vm.envOr("DURATION", uint256(Config.ONE_YEAR)));
+        EnsConfig memory c = ens();
 
-        IETHRegistrarRead registrar = IETHRegistrarRead(C.ETH_REGISTRAR);
-        IPermissionedRegistryRead registry = IPermissionedRegistryRead(C.ETH_REGISTRY);
-        IMintableERC20 usdc = IMintableERC20(C.MOCK_USDC);
+        IETHRegistrarRead registrar = IETHRegistrarRead(c.ethRegistrar);
+        IPermissionedRegistryRead registry = IPermissionedRegistryRead(c.ethRegistry);
+        IMintableERC20 usdc = IMintableERC20(c.mockUsdc);
 
         require(registrar.isRenewable(label), "not renewable");
         uint64 expiryBefore = registry.findExpiry(label);
@@ -39,7 +41,7 @@ contract ProveRenew is Script {
         vm.startBroadcast();
         if (usdc.balanceOf(msg.sender) < price) usdc.mint(msg.sender, price);
         usdc.approve(address(registrar), price);
-        registrar.renew(label, duration, IERC20(address(usdc)), referrer);
+        registrar.renew(RenewData(label, duration, referrer), IERC20(address(usdc)));
         vm.stopBroadcast();
 
         uint64 expiryAfter = registry.findExpiry(label);

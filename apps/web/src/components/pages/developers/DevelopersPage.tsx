@@ -1,12 +1,15 @@
-import { ENS_DEPLOYMENTS, SPIRITH_DEPLOYMENTS } from '@spirith/core';
 import type { Address } from 'viem';
 import { AddressLink } from '@/components/AddressLink';
 import { ExternalLink } from '@/components/ExternalLink';
-import { APP_CHAIN } from '@/lib/chain';
-import { REPO_TREE, REPO_URL, SUBGRAPH_STUDIO_URL } from '@/lib/links';
-
-const SPIRITH = SPIRITH_DEPLOYMENTS[APP_CHAIN.name];
-const ENS = ENS_DEPLOYMENTS[APP_CHAIN.name];
+import { ENS, SPIRITH } from '@/hooks/chain/contracts';
+import { APP_CHAIN, APP_ENV } from '@/lib/chain';
+import {
+  ENS_APP_URL,
+  ENS_EXPLORER_URL,
+  REPO_TREE,
+  REPO_URL,
+  SUBGRAPH_STUDIO_URL,
+} from '@/lib/links';
 
 const SPIRITH_CONTRACTS: readonly { name: string; address: Address; note: string }[] = [
   {
@@ -118,23 +121,26 @@ export function DevelopersPage() {
           </li>
         </ul>
 
-        <h2>Contracts on Sepolia</h2>
+        <h2>Contracts on {APP_CHAIN.chain.name}</h2>
         <p>
           Verified on Etherscan. The vault never holds a name; it holds USDC earmarked per name and
           has exactly two exits for it.
         </p>
         <ContractTable rows={SPIRITH_CONTRACTS} />
         <p>
-          The ENSv2 beta contracts the vault calls, verified against the universal resolver entry
-          point:
+          The contracts of {APP_ENV.title} the vault calls, verified against that deployment's
+          universal resolver entry point. The set is served by its own{' '}
+          <ExternalLink href={ENS_APP_URL}>ENS app</ExternalLink> and{' '}
+          <ExternalLink href={ENS_EXPLORER_URL}>explorer</ExternalLink>; the environment is chosen
+          by <code>NEXT_PUBLIC_ENV</code>.
         </p>
         <ContractTable rows={ENS_CONTRACTS} />
 
         <h2>Subgraph</h2>
         <p>
-          <ExternalLink href={SUBGRAPH_STUDIO_URL}>spirith-sepolia</ExternalLink> on Subgraph Studio
-          indexes every <code>.eth</code> name on the ENSv2 Sepolia registry and every Spirith
-          event: <code>Name</code>, <code>Endowment</code>, <code>Patron</code>,{' '}
+          <ExternalLink href={SUBGRAPH_STUDIO_URL}>spirith-{APP_CHAIN.name}</ExternalLink> on
+          Subgraph Studio indexes every <code>.eth</code> name on the registry of {APP_ENV.title}{' '}
+          and every Spirith event: <code>Name</code>, <code>Endowment</code>, <code>Patron</code>,{' '}
           <code>RenewalEvent</code> and a <code>Namespace</code> row of running totals. Nothing
           time-dependent is stored; risk bands and funded-until are computed at read time.
         </p>

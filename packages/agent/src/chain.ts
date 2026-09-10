@@ -28,8 +28,8 @@ export interface ChainReader {
 
 export function viemChainReader(env: AgentEnv): ChainReader {
   const client = createPublicClient({ chain: env.chain.chain, transport: http(env.rpcUrl) });
-  const vault = spirithContract(env.chain.name, 'spirithVault');
-  const adapter = spirithContract(env.chain.name, 'mockYieldAdapter');
+  const vault = spirithContract(env.environment.name, 'spirithVault');
+  const adapter = spirithContract(env.environment.name, 'mockYieldAdapter');
   let constants: Promise<VaultConstants> | undefined;
   return {
     async runwayOf(label) {

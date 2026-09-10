@@ -6,7 +6,6 @@ import {console} from "forge-std/Script.sol";
 import {SpirithVault} from "../src/SpirithVault.sol";
 import {IPermissionedRegistryRead} from "../src/interfaces/ens/IPermissionedRegistryRead.sol";
 import {ITextResolver} from "../src/interfaces/ens/ITextResolver.sol";
-import {SepoliaConfig as C} from "./Config.s.sol";
 import {Deployed} from "./Deployed.s.sol";
 
 /// @notice Run as a KEEPER (any key, never the owner). Renews `LABEL.eth` from its earmark for
@@ -15,10 +14,9 @@ import {Deployed} from "./Deployed.s.sol";
 ///   LABEL=<label> forge script script/Renew.s.sol --rpc-url ... --private-key $KEEPER_PRIVATE_KEY --broadcast
 contract Renew is Deployed {
     function run() external {
-        require(block.chainid == C.CHAIN_ID, "sepolia only");
         string memory label = vm.envString("LABEL");
         SpirithVault v = vault();
-        IPermissionedRegistryRead registry = IPermissionedRegistryRead(C.ETH_REGISTRY);
+        IPermissionedRegistryRead registry = IPermissionedRegistryRead(ens().ethRegistry);
 
         uint64 duration = v.optimalDuration(label);
         uint64 before = registry.findExpiry(label);

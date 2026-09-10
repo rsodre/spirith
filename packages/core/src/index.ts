@@ -1,7 +1,11 @@
-export { ChainName, chainConfig, isChainName, type ChainConfig } from './chains.js';
-export { ENS_DEPLOYMENTS, type EnsDeployment } from './ens/addresses.js';
+export { ChainName, chainConfig, chainNameOf, isChainName, type ChainConfig } from './chains.js';
+export { EnvName, environment, isEnvName, type Environment } from './environment.js';
+export { ENS_LINKS, type EnsLinks } from './links.js';
+export { ENS_DEPLOYMENTS, ensDeployment, type EnsDeployment } from './ens/addresses.js';
 export {
   ENS_CONTRACTS,
+  PERMISSIONED_RESOLVER_V2_ABI,
+  RESOLVER_GENERATION_ID,
   ensContract,
   type ContractRef,
   type EnsContractName,
@@ -11,6 +15,7 @@ export {
   SPIRITH_DEPLOYMENTS,
   SPIRITH_RECORDS,
   spirithContract,
+  spirithDeployment,
   type SpirithContractName,
   type SpirithDeployment,
 } from './spirith/registry.js';

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script, console} from "forge-std/Script.sol";
+import {console} from "forge-std/Script.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IMintableERC20} from "../src/interfaces/ens/IMintableERC20.sol";
-import {SepoliaConfig as C} from "./Config.s.sol";
+import {Config, EnsConfig} from "./Config.s.sol";
+import {Deployed} from "./Deployed.s.sol";
 
 interface IRegistrarRegister {
     function commit(bytes32 commitment) external;
@@ -42,8 +43,9 @@ interface IRegistrarRegister {
 ///   LABEL=<label> STEP=register forge script script/RegisterName.s.sol --rpc-url ... --broadcast
 ///
 /// Optional: DURATION (seconds, default 28 days, the minimum), RESOLVER (default PublicResolverV2;
-/// a PermissionedResolver instance from manager.ens.dev is what Phase 2 needs), SECRET (bytes32).
-contract RegisterName is Script {
+/// a PermissionedResolver instance from the environment's ENS app is what Phase 2 needs),
+/// SECRET (bytes32).
+contract RegisterName is Deployed {
     struct Params {
         string label;
         address owner;
@@ -53,11 +55,14 @@ contract RegisterName is Script {
         bytes32 referrer;
     }
 
-    IRegistrarRegister internal constant REGISTRAR = IRegistrarRegister(C.ETH_REGISTRAR);
-    IMintableERC20 internal constant USDC = IMintableERC20(C.MOCK_USDC);
+    EnsConfig internal c;
+    IRegistrarRegister internal REGISTRAR;
+    IMintableERC20 internal USDC;
 
     function run() external {
-        require(block.chainid == C.CHAIN_ID, "sepolia only");
+        c = ens();
+        REGISTRAR = IRegistrarRegister(c.ethRegistrar);
+        USDC = IMintableERC20(c.mockUsdc);
         Params memory p = _params();
         require(REGISTRAR.isAvailable(p.label), "not available");
 
@@ -72,12 +77,12 @@ contract RegisterName is Script {
         p.label = vm.envString("LABEL");
         p.owner = msg.sender;
         p.secret = vm.envOr("SECRET", keccak256("spirith-phase0"));
-        p.resolver = vm.envOr("RESOLVER", C.PUBLIC_RESOLVER_V2);
-        p.duration = uint64(vm.envOr("DURATION", uint256(C.MIN_REGISTER_DURATION)));
+        p.resolver = vm.envOr("RESOLVER", c.publicResolverV2);
+        p.duration = uint64(vm.envOr("DURATION", uint256(Config.MIN_REGISTER_DURATION)));
         p.referrer = bytes32(uint256(uint160(msg.sender)));
     }
 
-    function _commitment(Params memory p) internal pure returns (bytes32) {
+    function _commitment(Params memory p) internal view returns (bytes32) {
         return REGISTRAR.makeCommitment(
             p.label, p.owner, p.secret, address(0), p.resolver, p.duration, p.referrer
         );

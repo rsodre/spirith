@@ -12,7 +12,7 @@ import { useNow } from '@/hooks/use-now';
 import { WarningIcon } from '@/icons';
 import { useEndowments } from '@/hooks/queries/use-endowments';
 import { useNamespace } from '@/hooks/queries/use-namespace';
-import { ensExplorerName } from '@/lib/chain';
+import { ensExplorerName } from '@/lib/links';
 import { formatDate, formatDays, formatDollars, fundedRange } from '@/lib/format';
 
 const EMPTY: readonly string[] = [];

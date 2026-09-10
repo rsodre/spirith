@@ -1,0 +1,18 @@
+{
+  "chainId": 11155111,
+  "source": "https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta",
+  "verifiedOn": "2026-09-10",
+  "startBlock": { "ethRegistry": 11626718, "ethRegistrar": 11626738 },
+  "ethRegistrar": "0x7d1b7f586a62ac3f54b9a396849757814283270b",
+  "ethRegistry": "0x1d78834d97c1d7b1a38c1dedbd1a287cfed3971e",
+  "rootRegistry": "0xe7f0d5724f8337e3aa9a9910540341ff4273fed9",
+  "rentPriceOracle": "0xfeba6589b5c1b35875c0389ccedf83148b6ee71b",
+  "mockUsdc": "0xcbfd80f74375c54e545af34788ff465f96f66f05",
+  "mockDai": "0x93403a98c3a6be906585cd0d68447c0fc600fb38",
+  "circleUsdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+  "permissionedResolverImpl": "0xa9d3814ab151bf6e37a427432795371a8361614e",
+  "verifiableFactory": "0x894bc9cc8ff1ad96b8a288c86a8c71d662c07780",
+  "universalResolver": "0xd26f2040d083af1cd2962ba303f4bea0c4faf142",
+  "publicResolverV2": "0xf9de4979ddb290baf5b760d0e788125017bc33f6",
+  "paymentBeneficiary": "0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3"
+}

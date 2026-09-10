@@ -9,9 +9,13 @@ import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 import {IYieldAdapter} from "./adapters/IYieldAdapter.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+
 import {IETHRegistrarRead} from "./interfaces/ens/IETHRegistrarRead.sol";
+import {RenewData} from "./interfaces/ens/IETHRenewer.sol";
 import {IPermissionedRegistryRead} from "./interfaces/ens/IPermissionedRegistryRead.sol";
 import {ITextResolver} from "./interfaces/ens/ITextResolver.sol";
+import {ITextSetter} from "./interfaces/ens/IPermissionedResolverV2.sol";
 import {Runway} from "./libraries/Runway.sol";
 
 /// @title SpirithVault
@@ -60,7 +64,11 @@ contract SpirithVault is Ownable2Step, Pausable {
     uint256 public constant TIP_BPS = 100;
     uint256 public constant TIP_CAP = 1e6;
     /// @dev Gas stipend per resolver record write; a misbehaving resolver cannot block renewal.
-    uint256 internal constant RECORD_GAS = 150_000;
+    /// A first write on the record-linked resolver creates the record too, hence the headroom.
+    uint256 internal constant RECORD_GAS = 200_000;
+    /// @dev ERC-165 id of ITextSetter: the resolver keys records by DNS-encoded name and takes
+    /// `setText(name, key, value)`; without it the vault uses the node-keyed `setText`.
+    bytes4 internal constant TEXT_SETTER_ID = 0xc7279f88;
     /// @dev namehash("eth")
     bytes32 internal constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
@@ -268,7 +276,7 @@ contract SpirithVault is Ownable2Step, Pausable {
         _release(e, price + tip);
 
         USDC.forceApprove(address(REGISTRAR), price);
-        REGISTRAR.renew(label, duration, USDC, REFERRER);
+        REGISTRAR.renew(RenewData(label, duration, REFERRER), USDC);
         if (tip > 0) USDC.safeTransfer(msg.sender, tip);
 
         bool recorded = _writeRecord(label, h, e);
@@ -406,6 +414,8 @@ contract SpirithVault is Ownable2Step, Pausable {
     /// @dev Best-effort liveness record on the name's resolver (spec §4.3). Needs the owner to
     /// have granted this contract `ROLE_SET_TEXT` for the two keys; otherwise, or for a
     /// resolver that is not a PermissionedResolver, the write fails quietly and returns false.
+    /// Both PermissionedResolver generations are served: the record-linked one by DNS name
+    /// (ERC-165 `TEXT_SETTER_ID`), the older one by node.
     function _writeRecord(string calldata label, bytes32 h, Endowment storage e)
         internal
         returns (bool)
@@ -413,20 +423,35 @@ contract SpirithVault is Ownable2Step, Pausable {
         address resolver = REGISTRY.getResolver(label);
         if (resolver.code.length == 0) return false;
         (uint64 low,,,) = _runway(label, e);
+        bool byName = ERC165Checker.supportsERC165InterfaceUnchecked(resolver, TEXT_SETTER_ID);
+        return _setText(resolver, byName, label, h, RECORD_FUNDED_UNTIL, Strings.toString(low))
+            && _setText(resolver, byName, label, h, RECORD_PATRONS, Strings.toString(e.patronCount));
+    }
+
+    function _setText(
+        address resolver,
+        bool byName,
+        string calldata label,
+        bytes32 h,
+        string memory key,
+        string memory value
+    ) internal returns (bool) {
+        if (byName) {
+            if (bytes(label).length > 255) return false;
+            bytes memory name =
+                abi.encodePacked(uint8(bytes(label).length), label, uint8(3), "eth", uint8(0));
+            try ITextSetter(resolver).setText{gas: RECORD_GAS}(name, key, value) {
+                return true;
+            } catch {
+                return false;
+            }
+        }
         bytes32 n = keccak256(abi.encodePacked(ETH_NODE, h));
-        try ITextResolver(resolver).setText{gas: RECORD_GAS}(
-            n, RECORD_FUNDED_UNTIL, Strings.toString(low)
-        ) {}
-        catch {
+        try ITextResolver(resolver).setText{gas: RECORD_GAS}(n, key, value) {
+            return true;
+        } catch {
             return false;
         }
-        try ITextResolver(resolver).setText{gas: RECORD_GAS}(
-            n, RECORD_PATRONS, Strings.toString(e.patronCount)
-        ) {}
-        catch {
-            return false;
-        }
-        return true;
     }
 
     /// @dev Move whatever exceeds the reserve target into the adapter, with an exact allowance

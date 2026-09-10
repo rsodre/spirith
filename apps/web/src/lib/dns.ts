@@ -5,7 +5,7 @@ export function nameNode(label: string): Hex {
   return namehash(`${label}.eth`);
 }
 
-/** DNS wire encoding of `<label>.eth`, what `authorizeTextRoles` takes. */
+/** DNS wire encoding of `<label>.eth`, what resolver authorisations and ENSIP-10 reads take. */
 export function dnsEncodeEth(label: string): Hex {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(label);

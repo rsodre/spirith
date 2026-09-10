@@ -80,7 +80,34 @@ Source: https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta. Verified 
 | PublicResolverV2 | `0xe7b9a25607e02da8145e4eb1836ca539e53f11f7` |
 | Payment beneficiary | `0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3` |
 
-Apps: https://manager.ens.dev (register, manage) and https://explorer.ens.dev. Activity in the week to 2026-09-05: about 500 registrations and 3,400 renewals, almost all in MockUSDC, so the scoreboard will not be empty.
+Apps: https://app.ens.dev (register, manage; manager.ens.dev redirects there) and https://explorer.ens.dev. Activity in the week to 2026-09-05: about 500 registrations and 3,400 renewals, almost all in MockUSDC, so the scoreboard will not be empty.
+
+### ENSv2 hackathon deployment on Sepolia (chain 11155111)
+Source: https://docs.ens.domains/learn/deployments#sepolia-ensv2-beta, which says: *"ETHOnline 2026: the table below lists the dedicated hackathon ENSv2 deployment, which is separate from the standard ENSv2 Beta deployment on Sepolia. Build your hackathon project against these addresses. Interact with this deployment via the hackathon ENS App and ENS Explorer, which serve it exclusively."* Verified live 2026-09-10: the root registry resolves `eth` to the ETHRegistry below; the registrar's registry, oracle and beneficiary match; pricing, the three discount points, the 28-day grace, the 28-day minimum and the 60 s commit age are identical to the beta; the oracle accepts this set's MockUSDC and the same Circle USDC. Created 2026-09-02 (ETHRegistry block 11626718, ETHRegistrar block 11626738). **Nothing from v1 is mirrored:** `vitalik` is `AVAILABLE`, not `RESERVED`, so the `ETHRenewerV1` case does not arise here. The full table has 40 contracts; `packages/core/deployments/ens/hackathon.json` holds the ones Spirith touches.
+
+| Contract | Address |
+|---|---|
+| ETHRegistrar | `0x7d1b7f586a62ac3f54b9a396849757814283270b` |
+| ETHRegistry | `0x1d78834d97c1d7b1a38c1dedbd1a287cfed3971e` |
+| RootRegistry | `0xe7f0d5724f8337e3aa9a9910540341ff4273fed9` |
+| StandardRentPriceOracle | `0xfeba6589b5c1b35875c0389ccedf83148b6ee71b` |
+| MockUSDC | `0xcbfd80f74375c54e545af34788ff465f96f66f05` |
+| MockDAI | `0x93403a98c3a6be906585cd0d68447c0fc600fb38` |
+| PermissionedResolverImpl | `0xa9d3814ab151bf6e37a427432795371a8361614e` |
+| VerifiableFactory | `0x894bc9cc8ff1ad96b8a288c86a8c71d662c07780` |
+| UpgradableUniversalResolverProxy (the entry point to override in viem) | `0xd26f2040d083af1cd2962ba303f4bea0c4faf142` |
+| UniversalResolverV2 | `0xfea8d4b7fcce0b8765c793d6695eac384aaa458f` |
+| PublicResolverV2 | `0xf9de4979ddb290baf5b760d0e788125017bc33f6` |
+| ETHRenewerV1 | `0x47bc0ab8f87db01383255e564cce92956ecc7c70` |
+| Payment beneficiary | `0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3` (same as the beta) |
+
+Apps, serving this set only: ENS app https://hackathon-deployment-manager-app-v4.ens-cf.workers.dev (name page `/<label>.eth`, account page `/<address>`) and explorer https://hackathon-deployment-portal-app.ens-cf.workers.dev (`/<label>.eth`, `/addr/<address>`, `/names`). The beta's own apps use the same shapes: https://app.ens.dev/<label>.eth (manager.ens.dev redirects there) and https://explorer.ens.dev/<label>.eth. The hackathon app's API worker also exposes a faucet, `POST /wallet/fund` with `{"address"}`. Consequence: the dashboard's outbound links and its contract set must switch together, which is what the environment layer does (`SPIRITH_ENV` / `NEXT_PUBLIC_ENV`, plan §0).
+
+**Two interface differences from the beta, both verified against the hackathon sources on 2026-09-10 and both handled:**
+- `ETHRegistrar.renew` is `renew(RenewData{label, duration, referrer}, IERC20 paymentToken)` (interface id `0x37e6a567`; `renewBatch` exists too); payment is still pulled from `msg.sender` to the beneficiary. The beta's `renew(string,uint64,address,bytes32)` (`0x06aaeb32`) is gone. The vault, the vendored `IETHRenewer` and core's registrar ABI follow the new one; the beta vault at `deployments/sepolia.json` keeps working on the beta, and new code is not deployable there.
+- `PermissionedResolverImpl` is the record-linked generation (ERC-165 `0x33cc44a0` for `initialize(Grant[],bytes[])`, `0xc7279f88` for `ITextSetter`): setters take the DNS-encoded name (`setText(bytes name, string key, string value)`), the owner grants one setter with `grantSetterRoles(setterCalldata, account)` (there is no `authorizeTextRoles`), and there is no `text(node,key)` view; reads are ENSIP-10 `resolve(name, text(node,key))`, which the Universal Resolver does for every client. The shared `PublicResolverV2` is unchanged. The vault detects the generation with ERC-165 and writes by name or by node; the prepare script, the fork test and the web flow do the same; the web reads records through the Universal Resolver.
+
+Activity from the registrar's logs, 2026-09-03 to 2026-09-10: 47 registrations by 32 owners, 0 renewals, 1,097.86 USDC paid (46 in MockUSDC, 1 in Circle USDC), zero referrer on every one. Durations: 34 × 1 year, 10 × 2 years, 3 × 28 days. Labels: 3 four-letter ($160/yr), 44 five-plus ($8/yr); 22 registered with no resolver, 5 on PublicResolverV2. The beta holds about 171,000 names by comparison (plan Phase 4). A scoreboard on this set is small but every name on it belongs to a hackathon team, and the three 28-day names are inside the 30-day lead window from day one.
 
 ### PermissionedResolver write path
 - Each account gets its own resolver: a UUPS proxy of `PermissionedResolverImpl` deployed through `VerifiableFactory.deployProxy(impl, salt, initData)` with `initialize(admin, roleBitmap, setters)`. The registry points the name at it via `setResolver`.
@@ -117,7 +144,9 @@ The grace period cut from 90 → 28 days is a **pitch weapon**. Open with it: *"
 
 ## 3. Open questions
 
-None. The six Day-1 questions (USDC accepted, discounts on renewals, renewal price accessor, referrer economics, deployment addresses, renewal window) were resolved on 2026-09-05 and live as facts in §2. A new question goes here with the work it blocks.
+The six Day-1 questions (USDC accepted, discounts on renewals, renewal price accessor, referrer economics, deployment addresses, renewal window) were resolved on 2026-09-05 and live as facts in §2. A new question goes here with the work it blocks.
+
+None open. *Which ENSv2 set the submission runs on* was raised and decided on 2026-09-10: the hackathon deployment (§2), because ENS's docs point hackathon projects at it and its app and explorer serve only it. The move is recorded in the plan (Phase 6, 2026-09-10); the beta keeps the 2026-09-09 vault and is frozen for new contract code.
 
 ---
 
@@ -566,7 +595,8 @@ The submission-facing proposal for everything after the hackathon, including fut
 - Contract developer tutorial — https://docs.ens.domains/ensv2/tutorial-contract-developers
 - PermissionedResolver — https://docs.ens.domains/ensv2/permissioned-resolver
 - Enhanced Access Control — https://docs.ens.domains/ensv2/enhanced-access-control
-- Beta apps — https://manager.ens.dev , https://explorer.ens.dev
+- Beta apps — https://app.ens.dev , https://explorer.ens.dev
+- Hackathon apps (serve the hackathon set only) — https://hackathon-deployment-manager-app-v4.ens-cf.workers.dev , https://hackathon-deployment-portal-app.ens-cf.workers.dev
 - ENS Referral Program — https://github.com/namehash/ens-referrals
 
 **Prior art**

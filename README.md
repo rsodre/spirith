@@ -31,14 +31,19 @@ The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMA
 
 ## Status
 
-Phase 6 of the build: the vault is live on Sepolia and has renewed a name from a stranger's
-wallet, the subgraph indexes the whole Sepolia namespace, an MCP server answers questions
-about it, and a dashboard shows it all. Contracts (verified on Etherscan; addresses in `packages/core/deployments/sepolia.json`):
+Phase 6 of the build: the vault is live on the ENSv2 hackathon deployment on Sepolia and has
+renewed a name from a stranger's wallet there, the subgraph indexes that namespace, an MCP
+server answers questions about it, and a dashboard shows it all. Contracts (verified on
+Etherscan; addresses in `packages/core/deployments/hackathon.json`):
 
 | Contract | Address |
 |---|---|
-| SpirithVault | `0xA7eD0f0617c3B381aA1aaf0afA511bf1f820E820` |
-| MockYieldAdapter (4% simulated) | `0x7d1CDa3630BC1c4f822303dCE0c290a0692d467C` |
+| SpirithVault | `0xaC0Fb734bc97Ba542bC3a1974607E8C6FbD42d32` |
+| MockYieldAdapter (4% simulated) | `0xb449547B2bE11d8c8e9C1f42a5FC305160dD0832` |
+
+An earlier vault on the standing ENSv2 beta (`packages/core/deployments/sepolia.json`) stays
+deployed; the beta's registrar has an older `renew` signature, so new code targets the hackathon
+set.
 
 Real yield is proven on an Ethereum mainnet fork rather than on Sepolia, where no lending
 market accepts the ENS test tokens: with the vault's `ERC4626Adapter` over Aave v3's USDC token,
@@ -102,6 +107,11 @@ pnpm --filter @spirith/agent keeper once --label <name> --dry-run   # what a kee
 pnpm dev                    # the dashboard on http://localhost:3000 (reads the root .env at start; restart after editing it)
 ```
 
+Spirith runs against one environment at a time: `hackathon`, the dedicated ENSv2 deployment ENS
+runs for ETHOnline 2026 with its own ENS app and explorer (default), or `sepolia`, the standing
+ENSv2 beta. `SPIRITH_ENV` in `.env` picks it for the scripts, the agent and the
+subgraph; `NEXT_PUBLIC_ENV` for the dashboard.
+
 Prove that anyone can renew a name they do not own (needs Sepolia ETH on the key; MockUSDC is
 minted by the script):
 
@@ -121,10 +131,11 @@ cd contracts
 forge script script/PrepareName.s.sol ...   # name owner: own resolver + let the vault write records
 forge script script/Endow.s.sol ...         # any wallet: mint test USDC and endow (AMOUNT, default 50 USDC)
 forge script script/Renew.s.sol ...         # any wallet: renew for the optimal duration, collect the tip
-forge script script/Deploy.s.sol ...        # redeploy the vault and rewrite the deployments file
+forge script script/Deploy.s.sol ...        # deploy the vault for SPIRITH_ENV and write its deployments file
 ```
 
-Deploy the subgraph to Subgraph Studio (create a subgraph named `spirith-sepolia` at
+Deploy the subgraph to Subgraph Studio (one subgraph per chain, `spirith-sepolia`, a version per
+environment; create it at
 https://thegraph.com/studio and put its deploy key in `.env`):
 
 ```sh

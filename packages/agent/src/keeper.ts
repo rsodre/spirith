@@ -8,8 +8,8 @@ const USAGE = `spirith-keeper once --label <label> [--dry-run]
 spirith-keeper watch [--interval <seconds>] [--polls <n>] [--dry-run]
   once   renews <label>.eth from its Spirith earmark when the vault allows it.
   watch  polls the subgraph for endowed names inside the lead window and renews each.
-  Reads SEPOLIA_RPC_URL, SUBGRAPH_QUERY_URL (watch) and KEEPER_PRIVATE_KEY; without a key it
-  only simulates. (pnpm --filter @spirith/agent keeper once --label <label>)`;
+  Reads SPIRITH_ENV, the chain's RPC url, SUBGRAPH_QUERY_URL (watch) and KEEPER_PRIVATE_KEY;
+  without a key it only simulates. (pnpm --filter @spirith/agent keeper once --label <label>)`;
 
 /** The vault's RENEW_LEAD, 30 days; the watcher looks this far ahead. */
 const RENEW_LEAD = 30n * 86_400n;
