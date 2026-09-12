@@ -1,9 +1,11 @@
-import { ensContract, spirithContract, type ChainConfig } from '@spirith/core';
+import { ensContract, type Environment, spirithContract } from '@spirith/core';
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 export interface RenewOnceInput {
-  readonly chain: ChainConfig;
+  /** The environment names the ENSv2 set and the vault; the chain alone does not, since Sepolia
+   * carries two of each. */
+  readonly environment: Environment;
   readonly rpcUrl: string;
   readonly label: string;
   /** Simulate only; never send. */
@@ -36,11 +38,11 @@ const SIMULATION_ACCOUNT: Address = '0x0000000000000000000000000000000000000001'
  */
 export async function renewOnce(input: RenewOnceInput): Promise<RenewOnceResult> {
   const publicClient = createPublicClient({
-    chain: input.chain.chain,
+    chain: input.environment.chain.chain,
     transport: http(input.rpcUrl),
   });
-  const vault = spirithContract(input.chain.name, 'spirithVault');
-  const registry = ensContract(input.chain.name, 'ethRegistry');
+  const vault = spirithContract(input.environment.name, 'spirithVault');
+  const registry = ensContract(input.environment.name, 'ethRegistry');
 
   const [expiry, lead, runway] = await Promise.all([
     publicClient.readContract({ ...registry, functionName: 'findExpiry', args: [input.label] }),
@@ -64,7 +66,7 @@ export async function renewOnce(input: RenewOnceInput): Promise<RenewOnceResult>
 
   const walletClient = createWalletClient({
     account,
-    chain: input.chain.chain,
+    chain: input.environment.chain.chain,
     transport: http(input.rpcUrl),
   });
   const hash = await walletClient.writeContract(request);

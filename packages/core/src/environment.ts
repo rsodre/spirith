@@ -3,6 +3,7 @@ import { type ChainConfig, type ChainName, chainConfig } from './chains.js';
 import { ENS_DEPLOYMENTS, type EnsDeployment } from './ens/addresses.js';
 import { ENS_LINKS, type EnsLinks } from './links.js';
 import { SPIRITH_DEPLOYMENTS, type SpirithDeployment } from './spirith/registry.js';
+import { type SubgraphEndpoint, subgraphEndpoint } from './subgraph/endpoint.js';
 
 // An environment is what one deploy of Spirith runs against: a chain, an ENSv2 contract set,
 // Spirith's own contracts on it, and the ENS apps that serve that set. Sepolia carries two
@@ -25,6 +26,8 @@ export interface Environment {
   readonly ens: EnsDeployment | undefined;
   readonly spirith: SpirithDeployment | undefined;
   readonly links: EnsLinks;
+  /** The Studio subgraph version indexing this environment; none where nothing is deployed. */
+  readonly subgraph: SubgraphEndpoint | undefined;
 }
 
 const CHAIN_OF: Readonly<Record<EnvName, ChainName>> = {
@@ -62,6 +65,7 @@ function build(name: EnvName): Environment {
     ens,
     spirith: SPIRITH_DEPLOYMENTS[name],
     links: ENS_LINKS[name],
+    subgraph: subgraphEndpoint(name, CHAIN_OF[name]),
   };
 }
 

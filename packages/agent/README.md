@@ -6,8 +6,8 @@ subgraph and the vault on Sepolia; nothing here holds funds.
 ## MCP server
 
 Five tools over stdio: `namesAtRisk`, `runway`, `optimalCadence`, `portfolioHealth`,
-`rescueProposal`. The server loads the nearest `.env` (it needs `SEPOLIA_RPC_URL` and
-`SUBGRAPH_QUERY_URL`), so it runs from the repository root with no extra configuration.
+`rescueProposal`. The server loads the nearest `.env` (it needs `SEPOLIA_RPC_URL`; the subgraph
+URL comes from the environment), so it runs from the repository root with no extra configuration.
 
 Claude Code picks it up from the repository's `.mcp.json`:
 

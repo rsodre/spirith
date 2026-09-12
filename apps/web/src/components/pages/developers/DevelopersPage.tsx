@@ -159,9 +159,9 @@ export function DevelopersPage() {
           ))}
         </ul>
         <p>
-          Clone the repository, run <code>pnpm install</code>, put a Sepolia RPC URL and the
-          subgraph query URL in <code>.env</code>, and Claude Code picks the server up from the
-          repository's <code>.mcp.json</code>:
+          Clone the repository, run <code>pnpm install</code>, put a Sepolia RPC URL in{' '}
+          <code>.env</code>, and Claude Code picks the server up from the repository's{' '}
+          <code>.mcp.json</code>:
         </p>
         <pre className="overflow-x-auto rounded-sm border border-line bg-panel p-4 text-sm">
           <code>{MCP_JSON}</code>

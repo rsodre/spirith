@@ -119,7 +119,10 @@ export function buildServer(ctx: ToolContext): McpServer {
 async function main(): Promise<void> {
   loadDotEnv();
   const env = loadEnv();
-  if (!env.subgraphUrl) throw new Error('SUBGRAPH_QUERY_URL is not set');
+  if (!env.subgraphUrl)
+    throw new Error(
+      `no subgraph for the ${env.environment.name} environment; set SUBGRAPH_QUERY_URL`,
+    );
   const ctx: ToolContext = {
     subgraph: { url: env.subgraphUrl, apiKey: env.graphApiKey },
     chain: viemChainReader(env),

@@ -108,7 +108,10 @@ Core's `environment(name)` bundles the chain, the ENSv2 set, Spirith's deploymen
 and explorer links for that set; `SPIRITH_ENV` selects it for forge scripts, the agent and the
 subgraph build, `NEXT_PUBLIC_ENV` for the web. ENS addresses live in exactly one place per
 environment, `packages/core/deployments/ens/<env>.json`, read by core, the subgraph's
-`prepare.mjs` and Foundry's `Config.load(vm)`; never type one anywhere else. Spirith's own
+`prepare.mjs` and Foundry's `Config.load(vm)`; never type one anywhere else. The subgraph
+version per environment is `deployments/subgraph.json`: core derives the public Studio query URL
+from it and `deploy:studio` its version label, so bump it there before deploying a schema change;
+`SUBGRAPH_QUERY_URL` is only an override (a gateway URL, with `GRAPH_API_KEY`). Spirith's own
 addresses are `deployments/<env>.json`, written by `Deploy.s.sol`; a new environment also needs
 its import in `packages/core/src/spirith/registry.ts`. The two Sepolia sets are served by
 different apps (spec §2), so links and contracts switch together, never separately. The vault

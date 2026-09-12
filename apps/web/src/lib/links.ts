@@ -6,8 +6,8 @@ import { APP_ENV } from './chain';
 // explorer.ens.dev only the beta (core's ENS_LINKS).
 export const REPO_URL = 'https://github.com/rsodre/spirith';
 export const REPO_TREE = `${REPO_URL}/tree/main`;
-// One Studio subgraph per chain; each environment is a version of it (v0.2.0 beta, v0.3.0 hackathon).
-export const SUBGRAPH_STUDIO_URL = `https://thegraph.com/studio/subgraph/spirith-${APP_ENV.chain.name}`;
+// One Studio subgraph per chain; each environment is a version of it (core's deployments/subgraph.json).
+export const SUBGRAPH_STUDIO_URL = APP_ENV.subgraph?.studio ?? 'https://thegraph.com/studio';
 
 export const ENS_APP_URL = APP_ENV.links.app;
 export const ENS_EXPLORER_URL = APP_ENV.links.explorer;

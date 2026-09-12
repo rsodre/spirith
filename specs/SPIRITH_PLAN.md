@@ -23,7 +23,7 @@ Each is reversible today and expensive later. Veto now or they stand.
 | Agent | Spirith MCP server in `packages/agent`, stdio transport, querying the Studio endpoint | → HANDOVER §6: hosted Subgraph MCP cannot reach Sepolia |
 | Keeper | TypeScript CLI in `packages/agent` (`spirith-keeper`), viem, reads the subgraph, sends `renew()` | Shares the subgraph client and cadence code with the MCP tools; Foundry scripts stay deploy-only |
 | Address registry | Foundry deploy script writes `packages/core/deployments/<env>.json`; `packages/core` exports `{address, abi}` per contract from that file plus `contracts/out` | One source for web, agent, keeper and subgraph manifest → `web3-chain-layer` |
-| Environments | `hackathon` / `sepolia` / `mainnet` in `packages/core` (`environment()`): chain + ENSv2 set + Spirith deployment + ENS app and explorer links. ENS addresses in `packages/core/deployments/ens/<env>.json`, read by core, the subgraph's `prepare.mjs` and Foundry's `Config.load(vm)`; chosen by `SPIRITH_ENV` (forge, agent, subgraph) and `NEXT_PUBLIC_ENV` (web), default `sepolia` | Sepolia carries two ENSv2 sets served by different apps (HANDOVER §2); one JSON per set replaced the two mirrored address lists (decided 2026-09-10) |
+| Environments | `hackathon` / `sepolia` / `mainnet` in `packages/core` (`environment()`): chain + ENSv2 set + Spirith deployment + ENS app and explorer links + the Studio subgraph version. ENS addresses in `packages/core/deployments/ens/<env>.json`, read by core, the subgraph's `prepare.mjs` and Foundry's `Config.load(vm)`; subgraph versions in `deployments/subgraph.json`, read by core (query URL) and `deploy:studio` (version label); chosen by `SPIRITH_ENV` (forge, agent, subgraph) and `NEXT_PUBLIC_ENV` (web), default `hackathon` | Sepolia carries two ENSv2 sets served by different apps (HANDOVER §2); one JSON per set replaced the two mirrored address lists (decided 2026-09-10) |
 | ENSv2 API target | The hackathon set's: struct `renew` in the vault and vendored `IETHRenewer`; both PermissionedResolver generations served by ERC-165 in the vault, `ResolverSetup.s.sol` and the web; record reads through the Universal Resolver. Default environment `hackathon` everywhere; the beta is frozen at its 2026-09-09 vault | The beta registrar's older `renew` cannot be called from code written for the hackathon one, and the hackathon is the submission target (decided 2026-09-10, HANDOVER §2) |
 | Frontend stack | Next.js 16 App Router, React 19, Tailwind 4, Biome, wagmi 2 + viem 2 + ConnectKit 1.9, TanStack Query 5 | Skill defaults (`nextjs`, `coding-style`, `web3-chain-layer`); wagmi stays on 2.x because ConnectKit caps it there, and its React 18 peer warning is accepted (decided 2026-09-09) |
 | Web reads | Subgraph through `api/query/*` route handlers + one react-query hook each, bigint as tagged JSON; chain through bare wagmi hooks; `@spirith/core` from its built `dist` | The Studio URL stays server-side; wagmi is its own cache; Turbopack cannot follow core's `.js`-suffixed source imports (decided 2026-09-09) |
@@ -217,8 +217,11 @@ Deployed to Subgraph Studio 2026-09-08 as `spirith-sepolia` v0.1.0, page
 https://thegraph.com/studio/subgraph/spirith-sepolia, query endpoint
 `https://api.studio.thegraph.com/query/1758987/spirith-sepolia/v0.1.0` (in `.env` as
 `SUBGRAPH_QUERY_URL`; the Studio endpoint takes no API key). The deploy script is `deploy:studio`
-because `pnpm deploy` is a pnpm built-in. Bump `config.versionLabel` in the package manifest
-before redeploying a schema change; Studio keeps one endpoint per version label. Gate observed
+because `pnpm deploy` is a pnpm built-in. Bump the environment's version in
+`packages/core/deployments/subgraph.json` before redeploying a schema change; Studio keeps one
+endpoint per version label, and core derives the query URL from that file (decided 2026-09-12:
+a Studio query URL carries no credential, so it is configuration, not a secret;
+`SUBGRAPH_QUERY_URL` only overrides it with a gateway URL). Gate observed
 the same day: the endpoint reached chain head (block 11664733) with no indexing errors in about
 25 minutes, holding 171,010 names and 6,057 renewals; `endowments` returns spirithbeta with
 50 USDC contributed, 27.270071 spent, 1 patron, `recordWritten: true`, and `renewalEvents` the

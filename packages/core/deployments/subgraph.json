@@ -1,0 +1,7 @@
+{
+  "queryBase": "https://api.studio.thegraph.com/query/1758987",
+  "versions": {
+    "hackathon": "v0.3.0",
+    "sepolia": "v0.2.0"
+  }
+}

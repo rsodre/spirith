@@ -153,8 +153,9 @@ forge script script/Deploy.s.sol ...        # deploy the vault for SPIRITH_ENV a
 ```
 
 Deploy the subgraph to Subgraph Studio (one subgraph per chain, `spirith-sepolia`, a version per
-environment; create it at
-https://thegraph.com/studio and put its deploy key in `.env`):
+environment; create it at https://thegraph.com/studio and put its deploy key in `.env`). The
+version each environment queries is in `packages/core/deployments/subgraph.json`; bump it there
+before deploying a schema change, and everything reads the new endpoint:
 
 ```sh
 pnpm --filter @spirith/subgraph deploy:studio

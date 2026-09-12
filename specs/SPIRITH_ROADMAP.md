@@ -107,6 +107,15 @@ therefore unusually easy to freeze (→ HANDOVER §11.6).
   with venue, rate range and risk notes, and lets a patron simulate the funded-until range under
   each before choosing; the agent's `optimalCadence` takes the adapter as an input.
 - **Liquidity-aware renewal fallback.** If the yield venue cannot pay out on renewal day, renew for the longest block the liquid reserve covers instead of failing (→ HANDOVER §4.1, known gap). A `refreshRecord(label)` that rewrites `spirith.funded-until` without a money movement belongs with it.
+- **What a withdrawal notice protects.** Shares under notice stay in the earmark until the
+  notice matures, so a renewal in that 30-day window is paid from them and the patron gets
+  back what is left; observed on 2026-09-12 when a name with its whole endowment under notice
+  was still renewable. That is the rule as specified (notice never blocks a renewal) and it
+  keeps `spirith.funded-until` truthful, but a patron who has given notice may not expect to
+  fund a six-year block on the way out. Options to weigh: exclude notice shares from
+  `optimalDuration` so the vault buys only what the remaining earmark affords; renew at most
+  one year while any notice is pending; or leave the rule and say so on the notice form. Not a
+  change for the hackathon build.
 - **The six-year price for endowed names, paid yearly (ENS partnership).** ENSv2 gives 43.75%
   off for paying six years upfront because the capital is committed; an endowed name commits
   it just as durably, on-chain and verifiably (the earmark, the 30-day withdrawal notice, the

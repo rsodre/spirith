@@ -15,7 +15,8 @@ export interface AgentEnv {
   readonly chain: ChainConfig;
   readonly rpcUrl: string;
   readonly keeperPrivateKey: `0x${string}` | undefined;
-  /** Studio or gateway query URL; the MCP tools and `keeper watch` need it. */
+  /** The environment's Studio query URL, unless SUBGRAPH_QUERY_URL overrides it with a gateway
+   * URL (then GRAPH_API_KEY too); the MCP tools and `keeper watch` need it. */
   readonly subgraphUrl: string | undefined;
   readonly graphApiKey: string | undefined;
 }
@@ -38,7 +39,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AgentEnv {
     chain: environ.chain,
     rpcUrl,
     keeperPrivateKey: key?.startsWith('0x') ? (key as `0x${string}`) : undefined,
-    subgraphUrl: env.SUBGRAPH_QUERY_URL || undefined,
+    subgraphUrl: env.SUBGRAPH_QUERY_URL || environ.subgraph?.url,
     graphApiKey: env.GRAPH_API_KEY || undefined,
   };
 }

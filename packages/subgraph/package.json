@@ -8,10 +8,7 @@
     "codegen": "pnpm prepare && graph codegen",
     "build": "pnpm codegen && graph build",
     "check-types": "pnpm build",
-    "deploy:studio": "pnpm build && graph deploy spirith-sepolia --deploy-key $GRAPH_DEPLOY_KEY --version-label $npm_package_config_versionLabel"
-  },
-  "config": {
-    "versionLabel": "v0.3.0"
+    "deploy:studio": "pnpm build && graph deploy spirith-sepolia --deploy-key $GRAPH_DEPLOY_KEY --version-label $(node scripts/version-label.mjs)"
   },
   "devDependencies": {
     "@graphprotocol/graph-cli": "catalog:",

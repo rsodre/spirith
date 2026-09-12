@@ -183,7 +183,7 @@ Everything is on **one chain**. Money and name live together. This is a hard con
 - **Per-name earmarks. No shared pool.** `alice.eth`'s deposit can never pay for `bob.eth`. No rehypothecation. This removes an entire class of exploit and makes the contract explicable in one sentence.
 - **Exactly two exits, hard-coded.** Money leaves either (a) to the ENS registrar as a renewal payment, or (b) back to a patron. No third destination exists in the code. The renewal path calls the registrar directly — never an intermediary address.
 - **No admin key can move funds.** Pause may block *new deposits only*. It may never block a withdrawal or a renewal. State this in the README's first paragraph; it is the first question a competent judge asks.
-- **Withdrawals are always available**, subject to a notice period (30 days) so that "funded until 2149" stays a truthful claim. Delayed, never blocked.
+- **Withdrawals are always available**, subject to a notice period (30 days) so that "funded until 2149" stays a truthful claim. Delayed, never blocked. Shares under notice stay in the earmark until the notice matures, so a renewal inside that window is paid from them (the roadmap weighs alternatives).
 - **Multi-patron per name.** Anyone can top up any name. Each patron can withdraw only their own share. This enables "adopt a name" and is what makes it a public good rather than a subscription.
 - **Deposit cap for the hackathon** (200 test USDC as deployed; 100 until 2026-09-09, raised so a $150 endowment, perpetual at 4%, can be made on stage) + "unaudited testnet software" banner. Correct posture, and it preempts the audit question.
 

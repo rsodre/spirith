@@ -1,6 +1,7 @@
 export { ChainName, chainConfig, chainNameOf, isChainName, type ChainConfig } from './chains.js';
 export { EnvName, environment, isEnvName, type Environment } from './environment.js';
 export { ENS_LINKS, type EnsLinks } from './links.js';
+export { type SubgraphEndpoint, subgraphEndpoint } from './subgraph/endpoint.js';
 export { ENS_DEPLOYMENTS, ensDeployment, type EnsDeployment } from './ens/addresses.js';
 export {
   ENS_CONTRACTS,
