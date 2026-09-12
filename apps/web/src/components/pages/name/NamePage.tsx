@@ -6,7 +6,7 @@ import { ExternalLink } from '@/components/ExternalLink';
 import { BandMark, Spinner } from '@/components/ui';
 import { useNameExpiry, useNameOwner, useNameResolver } from '@/hooks/chain/use-registry';
 import { useIsRenewable } from '@/hooks/chain/use-registrar';
-import { useSpirithRecords } from '@/hooks/chain/use-resolver';
+import { useSpirithRecords, useVaultAuthorised } from '@/hooks/chain/use-resolver';
 import { useVaultConstants, useVaultRunway } from '@/hooks/chain/use-vault';
 import { useWallet } from '@/hooks/chain/use-wallet';
 import { useName } from '@/hooks/queries/use-name';
@@ -39,6 +39,7 @@ export function NamePage() {
   const runway = runwayError ? null : runwayRead;
   const { constants } = useVaultConstants();
   const { records } = useSpirithRecords(label, resolver);
+  const { authorised } = useVaultAuthorised(label, resolver);
 
   const name = detail.data?.name ?? null;
   const endowed = (runway?.assets ?? 0n) > 0n;
@@ -117,6 +118,7 @@ export function NamePage() {
             records={records}
             name={name}
             recordWritten={name?.endowmentDetail?.recordWritten ?? null}
+            authorised={authorised}
           />
           {isOwner ? (
             <OwnerPanel
@@ -124,6 +126,7 @@ export function NamePage() {
               resolver={resolver}
               records={records}
               recordWritten={name?.endowmentDetail?.recordWritten ?? null}
+              authorised={authorised}
             />
           ) : null}
           <RenewalHistory renewals={name?.renewalEvents ?? EMPTY} isLoading={detail.isLoading} />

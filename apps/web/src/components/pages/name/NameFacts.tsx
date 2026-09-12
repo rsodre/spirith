@@ -26,6 +26,7 @@ interface Props {
   name: SubgraphNameDetail | null;
   /** The subgraph's last record-write result; null when never endowed. */
   recordWritten: boolean | null;
+  authorised: boolean | null;
 }
 
 function Row({ term, children }: { term: string; children: ReactNode }) {
@@ -38,7 +39,16 @@ function Row({ term, children }: { term: string; children: ReactNode }) {
 }
 
 // The facts, as a ruled list. Everything here is read from the chain except the counts.
-export function NameFacts({ label, expiry, owner, resolver, records, name, recordWritten }: Props) {
+export function NameFacts({
+  label,
+  expiry,
+  owner,
+  resolver,
+  records,
+  name,
+  recordWritten,
+  authorised,
+}: Props) {
   let tier: Tier | undefined;
   try {
     tier = tierOf(label);
@@ -100,6 +110,8 @@ export function NameFacts({ label, expiry, owner, resolver, records, name, recor
                 ? `, ${records.patrons} ${records.patrons === 1 ? 'patron' : 'patrons'}`
                 : ''}
             </ExternalLink>
+          ) : authorised ? (
+            <span className="text-muted">authorised, written at the next renewal</span>
           ) : recordWritten === false ? (
             <span className="text-amber">not authorised by the owner</span>
           ) : (

@@ -11,11 +11,13 @@ interface Props {
   resolver: Address | undefined;
   records: SpirithRecords | undefined;
   recordWritten: boolean | null;
+  /** The vault holds the setter role for both records; null when the resolver cannot say. */
+  authorised: boolean | null;
 }
 
 // Shown only to the connected owner. The one optional owner action: let the vault publish
 // the funding status as text records. Renewals never depend on it.
-export function OwnerPanel({ label, records, recordWritten }: Props) {
+export function OwnerPanel({ label, records, recordWritten, authorised }: Props) {
   const prepare = usePrepareNameFlow(label);
   const onPrepare = useCallback(() => prepare.mutate(), [prepare]);
   const published = records?.fundedUntil !== null && records?.fundedUntil !== undefined;
@@ -25,6 +27,11 @@ export function OwnerPanel({ label, records, recordWritten }: Props) {
         <p className="text-verdigris">
           Spirith is publishing this name's funding status on its resolver. Any wallet or
           marketplace can read it without asking us.
+        </p>
+      ) : authorised ? (
+        <p className="text-verdigris">
+          Spirith is authorised to write this name's funding status. The two records appear on the
+          resolver at the next deposit, withdrawal or renewal; nothing else is needed from you.
         </p>
       ) : (
         <div className="flex flex-col gap-4">

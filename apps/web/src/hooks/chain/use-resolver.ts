@@ -5,7 +5,13 @@ import { type Address, type Hex, decodeAbiParameters, encodeFunctionData } from 
 import { useReadContracts } from 'wagmi';
 import { SPIRITH_RECORDS } from '@spirith/core';
 import { dnsEncodeEth, nameNode } from '@/lib/dns';
-import { UNIVERSAL_RESOLVER, ZERO_ADDRESS, resolverContract } from './contracts';
+import {
+  UNIVERSAL_RESOLVER,
+  VAULT,
+  ZERO_ADDRESS,
+  resolverContract,
+  resolverV2Contract,
+} from './contracts';
 
 // Records are read the way every ENS client reads them, ENSIP-10 through the environment's
 // Universal Resolver: `resolve(name, text(node, key))`. That serves both PermissionedResolver
@@ -103,4 +109,56 @@ export function useSpirithFundedUntilMany(targets: readonly RecordTarget[]) {
     return map;
   }, [q.data, readable, targets]);
   return { fundedUntil, isLoading: contracts.length > 0 && q.isLoading };
+}
+
+const RECORD_KEYS = [SPIRITH_RECORDS.fundedUntil, SPIRITH_RECORDS.patrons] as const;
+
+/** Whether the vault holds the setter role for both `spirith.*` keys on a record-linked
+ * PermissionedResolver, read the way the grant was made: `decodeSetter` names the resource and
+ * role behind `setText(name, key, ...)`, `hasRoles` says whether the vault has them. Null for
+ * the shared public resolver or the older generation, which answer neither. The grant alone
+ * writes nothing; the vault publishes the records at its next endow, withdraw or renew. */
+export function useVaultAuthorised(label: string, resolver: Address | undefined) {
+  const enabled = label.length > 0 && resolver !== undefined && resolver !== ZERO_ADDRESS;
+  const setters = useMemo(() => {
+    if (!enabled) return undefined;
+    const ref = resolverV2Contract(resolver);
+    const name = dnsEncodeEth(label);
+    return RECORD_KEYS.map(
+      key =>
+        ({
+          ...ref,
+          functionName: 'decodeSetter',
+          args: [
+            encodeFunctionData({ abi: ref.abi, functionName: 'setText', args: [name, key, ''] }),
+          ],
+        }) as const,
+    );
+  }, [enabled, label, resolver]);
+  const decoded = useReadContracts({ contracts: setters, allowFailure: true, query: { enabled } });
+  const checks = useMemo(() => {
+    if (!enabled || !decoded.data) return undefined;
+    const ref = resolverV2Contract(resolver);
+    const out = [];
+    for (const r of decoded.data) {
+      if (r.status !== 'success') return undefined;
+      const [, resource, roleBitmap] = r.result;
+      out.push({
+        ...ref,
+        functionName: 'hasRoles',
+        args: [resource, roleBitmap, VAULT.address],
+      } as const);
+    }
+    return out;
+  }, [enabled, decoded.data, resolver]);
+  const has = useReadContracts({
+    contracts: checks,
+    allowFailure: true,
+    query: { enabled: checks !== undefined },
+  });
+  const authorised = useMemo<boolean | null>(() => {
+    if (!checks || !has.data) return null;
+    return has.data.every(r => r.status === 'success' && r.result === true);
+  }, [checks, has.data]);
+  return { authorised, isLoading: enabled && (decoded.isLoading || has.isLoading) };
 }
