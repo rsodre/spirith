@@ -62,16 +62,16 @@ export function HomePage() {
         className="mt-16 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3"
       >
         <Door
-          href="/endowed"
-          title="Endowed"
-          text="The names with a standing order: how much each holds and how far that reaches."
-          figure={ns ? `${ns.endowedNames} ${ns.endowedNames === 1 ? 'name' : 'names'}` : undefined}
-        />
-        <Door
           href="/expiring"
           title="Expiring"
           text="Every name inside its last 28 days, worst first, and what it would cost to keep each alive."
           figure={dying.count !== undefined ? `${dying.count} names` : undefined}
+        />
+        <Door
+          href="/endowed"
+          title="Endowed"
+          text="The names with a standing order: how much each holds and how far that reaches."
+          figure={ns ? `${ns.endowedNames} ${ns.endowedNames === 1 ? 'name' : 'names'}` : undefined}
         />
         <Door
           href="/graveyard"

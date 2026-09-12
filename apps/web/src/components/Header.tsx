@@ -17,8 +17,8 @@ import { formatUsdc, shortAddress } from '@/lib/format';
 // Two groups, a rule between them: the registers of names, then the pages about the project.
 const NAV_GROUPS = [
   [
-    { href: '/endowed', label: 'Endowed' },
     { href: '/expiring', label: 'Expiring' },
+    { href: '/endowed', label: 'Endowed' },
     { href: '/graveyard', label: 'Graveyard' },
     { href: '/patron', label: 'Patron' },
   ],
