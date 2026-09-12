@@ -1,8 +1,15 @@
 'use client';
 
 import { RESOLVER_GENERATION_ID, SPIRITH_RECORDS } from '@spirith/core';
-import { type Address, encodeFunctionData, encodePacked, isAddressEqual, keccak256 } from 'viem';
-import { readContract } from 'wagmi/actions';
+import {
+  type Address,
+  encodeFunctionData,
+  encodePacked,
+  getAbiItem,
+  isAddressEqual,
+  keccak256,
+} from 'viem';
+import { getBlockNumber, getPublicClient, readContract } from 'wagmi/actions';
 import { dnsEncodeEth } from '@/lib/dns';
 import { wagmiConfig } from '@/lib/wagmi';
 import {
@@ -35,6 +42,32 @@ async function isRecordLinked(): Promise<boolean> {
   });
 }
 
+// The public RPC refuses log queries wider than this many blocks.
+const LOG_RANGE = 50_000n;
+const PROXY_DEPLOYED = getAbiItem({ abi: FACTORY.abi, name: 'ProxyDeployed' });
+
+/** The proxy `account` already deployed through the factory with `salt`, if any. The factory
+ * has no address-prediction view and CREATE2 refuses a second deploy for the same salt, so a
+ * flow that stopped after its first transaction resumes from here instead of reverting. */
+async function findDeployedProxy(account: Address, salt: bigint): Promise<Address | undefined> {
+  const client = getPublicClient(wagmiConfig);
+  if (!client) return undefined;
+  const head = await getBlockNumber(wagmiConfig);
+  for (let from = BigInt(ENS.startBlock.ethRegistry); from <= head; from += LOG_RANGE) {
+    const toBlock = from + LOG_RANGE - 1n < head ? from + LOG_RANGE - 1n : head;
+    const logs = await client.getLogs({
+      address: FACTORY.address,
+      event: PROXY_DEPLOYED,
+      args: { sender: account },
+      fromBlock: from,
+      toBlock,
+    });
+    const hit = logs.find(log => log.args.salt === salt);
+    if (hit?.args.proxyAddress) return hit.args.proxyAddress;
+  }
+  return undefined;
+}
+
 /** The one optional owner action (spec §4.3): give the name its own PermissionedResolver
  * when it sits on the shared PublicResolverV2, point the registry at it, then let the vault
  * write the two `spirith.*` records. Renewals never depend on any of this. */
@@ -62,12 +95,17 @@ export function usePrepareNameFlow(label: string) {
             functionName: 'initialize',
             args: [tx.account, withAdmin(LEGACY_ROLES), []],
           });
-      const deployed = await tx.send('VerifiableFactory::deployProxy()', {
-        ...FACTORY,
-        functionName: 'deployProxy',
-        args: [RESOLVER_IMPL.address, salt, init],
-      });
-      resolver = deployed.result as Address;
+      const existing = await findDeployedProxy(tx.account, salt);
+      if (existing) {
+        resolver = existing;
+      } else {
+        const deployed = await tx.send('VerifiableFactory::deployProxy()', {
+          ...FACTORY,
+          functionName: 'deployProxy',
+          args: [RESOLVER_IMPL.address, salt, init],
+        });
+        resolver = deployed.result as Address;
+      }
       const tokenId = await readContract(wagmiConfig, {
         ...REGISTRY,
         functionName: 'findTokenId',
