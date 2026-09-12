@@ -251,7 +251,7 @@ within 30 days; spirithbeta.eth is endowed with 22.73 USDC, runway at least 9 ye
 renew for 3 years when due, with the four blocks compared. The session also pointed out that no
 endowed name reaches the lead window before the deadline; see the risk table.
 
-### Phase 6 ☑️ — Dashboard
+### Phase 6 ✅ — Dashboard
 
 Pages, each a folder under `components/pages/`:
 
@@ -314,8 +314,8 @@ differences). `SpirithVault` `0xaC0Fb734bc97Ba542bC3a1974607E8C6FbD42d32` and `M
 150 test USDC of the deployer's for `spirithbeta`; withdrawable after notice, otherwise ignore
 it). Names registered by the deployer key, each with its own record-linked PermissionedResolver
 and the vault authorised for both keys: `spirithbeta.eth` (28 days, expiry 2026-10-08, endowed
-150 USDC, funded until 2526, the on-stage name: renewable now, leave it unrenewed until the
-video), `spirithalpha.eth` (1 year, expiry 2027-09-10, endowed 50 USDC, funded until 2039) and
+150 USDC, funded until 2526; renewed from the browser on 2026-09-12, see the gate below),
+`spirithalpha.eth` (1 year, expiry 2027-09-10, endowed 50 USDC, funded until 2039) and
 `spirithgamma.eth` (28 days, endowed 25 USDC, then renewed by the keeper key `0xF137…E5B7` for
 one year at 8.000021 USDC with a 0.08 USDC tip, tx
 `0x1aa23e37faaac45f54f0fa881cf177becbcfcac9bf1277e9cc4074b553f6829f`: the first renewal ever on
@@ -323,21 +323,20 @@ the hackathon registrar, referrer Spirith). Both `spirith.*` records read back t
 hackathon Universal Resolver. Subgraph: `spirith-sepolia` v0.3.0 over the hackathon set
 (registry from block 11626718). Default environment is `hackathon` everywhere.
 
-#### Outstanding
-
-- **The gate is not observed.** Every write flow (endow, renew, owner record, withdraw) is built
-  and simulates against the ABI, but none has been run from a browser wallet; the Chrome
-  extension was unavailable in the build session. Run the demo script twice with a wallet on
-  Sepolia, then tick the phase.
-- No name reaches the lead window before the deadline (risk table): register a fresh 28-day
-  name with `RegisterName.s.sol` for the video; it is renewable from day one. The graveyard is
-  empty until 2026-09-24 (the registry opened 2026-07-30 with 28-day minimums), which is why the
-  page also lists the names in grace.
-- Storybook (`coding-style` § Storybook) is deferred past the deadline; the `ui/` primitives
-  have no stories.
-- Without `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` only injected wallets connect; fine for the demo.
-- The dashboard's write flows have still not been driven from a browser wallet on the hackathon
-  set; the same flows ran from Foundry scripts on 2026-09-10 (below).
+Gate observed 2026-09-10 to 2026-09-12 from the author's browser wallet
+`0x236293374e7652fe0a47f1109cfec844335c0a52` on the hackathon set, every write flow through the
+dashboard: `elpatron.eth` registered for six years from `/patron`; `spirithbeta` endowed 25 USDC
+(`0xff7c41e8cc…`), `elpatron` 150 USDC (`0xce8cf5b747…`) and `sfmtljjybbv2ok.eth`, a stranger's
+28-day name, 50 USDC (`0x94387b8268…`); `spirithbeta.eth`, which that wallet does not own, renewed
+for the six-year block at 27.000071 USDC with a 0.27 tip and the record written
+(`0xdcd60f0ae581ae9cdb312262a66788ab59a40e605767779969315311b832187c`, expiry 2026-10-08 →
+2032-10-06); withdrawal notice on `sfmtljjybbv2ok` (`0x27c630389928…`, executable 2026-10-12).
+spirithbeta is therefore no longer the on-stage name: the video needs a fresh 28-day name
+(risk table), registered from `/patron` or `RegisterName.s.sol`, endowed and renewed on camera.
+The graveyard stays empty until 2026-09-24 (the registry opened 2026-07-30 with 28-day
+minimums), which is why the page also lists the names in grace. Deferred past the deadline:
+Storybook stories for the `ui/` primitives (`coding-style` § Storybook), and
+`NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`, without which only injected wallets connect.
 
 ### Phase 7 — Submission, not later than Sun 2026-09-13 10:00 EDT
 
@@ -367,7 +366,7 @@ hackathon Universal Resolver. Subgraph: `spirith-sepolia` v0.3.0 over the hackat
 | `forge test` (in `contracts/`) | unit + invariants |
 | `forge test --fork-url $SEPOLIA_RPC_URL --match-contract RenewFork` | live registrar path |
 | `forge test --fork-url $MAINNET_RPC_URL --match-contract ERC4626AdapterFork` | real yield |
-| `forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify` | deploy + write `deployments/sepolia.json` |
+| `forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify` | deploy against `SPIRITH_ENV`'s ENSv2 set + write `deployments/<env>.json` |
 
 ---
 

@@ -46,8 +46,9 @@ them. No architecture rationale, no agent instructions, no spec content.
 
 ## Current state
 
-Phases 0–6 landed (2026-09-09) and the whole stack moved to the ENSv2 hackathon deployment on
-2026-09-10; `specs/SPIRITH_PLAN.md` has the per-phase record and what Phase 6 still owes. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
+Phases 0–6 landed and the whole stack moved to the ENSv2 hackathon deployment on 2026-09-10;
+Phase 6's gate was observed from a browser wallet on 2026-09-12. Only Phase 7, the submission,
+remains; `specs/SPIRITH_PLAN.md` has the per-phase record. `specs/SPIRITH_HANDOVER.md` is the source of truth for scope,
 architecture, decisions and deadline; the plan holds the phases, gates and project structure.
 Read both in full before building anything. When this file and a spec disagree, the spec wins;
 update this file.

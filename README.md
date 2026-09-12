@@ -2,9 +2,21 @@
 
 **Deposit once. Your ENS name renews itself forever.**
 
-Everything we call permanent online is rented. An Ethereum contract will hold your token
-until the sun burns out, but the `.eth` name it answers to expires unless someone pays the bill
-every year. Nothing breaks loudly when they forget. The name simply stops resolving.
+We custody money. We never custody the name. No admin key can move funds. The worst outcome
+for a user is losing their deposit. It is structurally impossible for them to lose their
+identity.
+
+ENSv2 cut the grace period after expiry from 90 days to 28. A name that was safe for a season
+of forgetting now dies in a month.
+
+> We built machines that remember forever and hung them on hooks that have to be paid for every
+> year. Ethereum will hold your token until the sun burns out; the name it answers to dies after
+> 28 days of silence. Everything we call permanent is rented — the name, the record, the link an
+> immutable contract can never be taught to forget — and the rent falls due on a calendar nobody
+> is watching, charged to a card somebody stopped checking. Nothing breaks loudly. There is no
+> revert, no failed transaction, no alert. The name simply stops resolving, and the thing behind
+> it remains perfectly intact, perfectly addressed, and permanently unreachable. This is not a
+> storage problem. Permanence has an invoice, and nobody ever set up the standing order.
 
 Spirith is a non-custodial endowment for ENS names. You deposit USDC into a vault dedicated to
 one name. The deposit earns yield. When the name comes due, anyone can trigger the renewal:
@@ -12,11 +24,14 @@ the vault pays the ENS registrar directly and tips whoever pressed the button. T
 advertises its own funding status, and a public dashboard shows how healthy the whole
 namespace is.
 
-We custody money. We never custody the name. The worst outcome for a user is losing their
-deposit. It is structurally impossible for them to lose their identity.
-
 For a normal five-letter name, roughly $110 to $130 deposited once is enough to keep it alive
 indefinitely at current rates. That is a forecast, not a guarantee, and the app says so.
+
+The idea is not new. [self-repaying-ens](https://github.com/The-Wary-One/self-repaying-ens)
+won Gitcoin's Money Legos in 2022 by renewing ENS names from Alchemix self-repaying debt with
+Gelato automation. Spirith finances the renewal with an endowment instead of debt, takes no
+custody of the name, is ENSv2-native, optimises against ENSv2's multi-year discounts, and adds a
+public liveness layer over the whole namespace.
 
 ## Phases
 
@@ -31,10 +46,13 @@ The post-hackathon proposal is [`specs/SPIRITH_ROADMAP.md`](specs/SPIRITH_ROADMA
 
 ## Status
 
-Phase 6 of the build: the vault is live on the ENSv2 hackathon deployment on Sepolia and has
-renewed a name from a stranger's wallet there, the subgraph indexes that namespace, an MCP
-server answers questions about it, and a dashboard shows it all. Contracts (verified on
-Etherscan; addresses in `packages/core/deployments/hackathon.json`):
+Built and running: the vault is live on the ENSv2 hackathon deployment on Sepolia, the subgraph
+indexes that namespace, an MCP server answers questions about it, and a dashboard shows it all.
+Names have been renewed there from wallets that do not own them, straight from the dashboard:
+[`0xdcd60f0a…`](https://sepolia.etherscan.io/tx/0xdcd60f0ae581ae9cdb312262a66788ab59a40e605767779969315311b832187c)
+bought spirithbeta.eth six years for 27.000071 test USDC out of its endowment, paid the caller a
+0.27 tip, and wrote the funding record on the name. Contracts (verified on Etherscan; addresses
+in `packages/core/deployments/hackathon.json`):
 
 | Contract | Address |
 |---|---|
@@ -70,7 +88,7 @@ ENSv2 registrar. Each name has a card with the endow flow (100 test USDC are min
 wallet that is short), a "renew now" button anyone can press once the name is
 inside its 30-day lead window, and the owner's one-time step that lets the vault publish the
 funding record. It needs a browser wallet on Sepolia; nothing else. Endowments on Sepolia are
-in ENS's MockUSDC, the token the beta registrar accepts.
+in ENS's MockUSDC, the token the hackathon registrar accepts.
 
 Nothing is audited.
 
